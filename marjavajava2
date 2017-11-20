@@ -1,0 +1,3481 @@
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ApplicationComponent
+package com.android.msahakyan.fma.di.component;
+
+import com.android.msahakyan.fma.adapter.delegates.BaseAdapterDelegate;
+import com.android.msahakyan.fma.di.module.ApiModule;
+import com.android.msahakyan.fma.di.module.ApplicationModule;
+import com.android.msahakyan.fma.di.module.ImageLoaderModule;
+import com.android.msahakyan.fma.di.module.NavigationModule;
+import com.android.msahakyan.fma.di.module.StorageModule;
+import com.android.msahakyan.fma.fragment.AlbumDetailFragment;
+import com.android.msahakyan.fma.fragment.AlbumsFragment;
+import com.android.msahakyan.fma.fragment.ArtistDetailFragment;
+import com.android.msahakyan.fma.fragment.ArtistsFragment;
+import com.android.msahakyan.fma.fragment.GenresFragment;
+import com.android.msahakyan.fma.fragment.SearchSuggestionsFragment;
+import com.android.msahakyan.fma.fragment.TrackDetailFragment;
+import com.android.msahakyan.fma.fragment.TracksFragment;
+import com.android.msahakyan.fma.network.FmaApiService;
+
+import javax.inject.Singleton;
+
+import dagger.Component;
+
+/**
+ * Created by msahakyan on 02/07/16.
+ */
+
+@Singleton
+@Component(modules = {ApplicationModule.class, ApiModule.class, ImageLoaderModule.class, StorageModule.class})
+public interface ApplicationComponent {
+
+    // Injects ApiService instance
+    void inject(FmaApiService fmaApiService);
+
+    void inject(BaseAdapterDelegate target);
+
+    // Inject FmaApiService instance
+    void inject(AlbumsFragment target);
+
+    // Inject FmaApiService instance
+    void inject(ArtistsFragment target);
+
+    // Inject FmaApiService instance
+    void inject(GenresFragment target);
+
+    // Inject FmaApiService instance
+    void inject(TracksFragment target);
+
+    // Inject FmaApiService instance
+    void inject(SearchSuggestionsFragment target);
+
+    // Injects ImageLoader instance
+    void inject(AlbumDetailFragment target);
+
+    // Injects ImageLoader instance
+    void inject(ArtistDetailFragment target);
+
+    // Injects ImageLoader instance
+    void inject(TrackDetailFragment target);
+
+    NavigationComponent plus(NavigationModule navigationModule);
+}
+---------------------------------------------------------------------------------------------
+NavigationComponent
+package com.android.msahakyan.fma.di.component;
+
+import com.android.msahakyan.fma.activity.MainActivity;
+import com.android.msahakyan.fma.di.module.NavigationModule;
+import com.android.msahakyan.fma.di.scope.NavigationScope;
+
+import dagger.Subcomponent;
+
+/**
+ * @author msahakyan
+ */
+
+@NavigationScope
+@Subcomponent(modules = {NavigationModule.class})
+public interface NavigationComponent {
+
+    /**
+     * Injects NavigationManager instance into target = `MainActivity`
+     *
+     * @param target The injection target
+     */
+    void inject(MainActivity target);
+}
+-----------------------------------------------------------------------------------------------
+ApiModule
+package com.android.msahakyan.fma.di.module;
+
+import android.app.Application;
+
+import com.android.msahakyan.fma.network.ApiService;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.Volley;
+
+import javax.inject.Singleton;
+
+import dagger.Module;
+import dagger.Provides;
+
+/**
+ * Created by msahakyan on 01/07/16.
+ */
+
+@Module
+public class ApiModule {
+
+    /**
+     * Provides singleton instance of Volley {@link RequestQueue}
+     *
+     * @param application The application instance
+     * @return a instance of request queue
+     */
+    @Singleton
+    @Provides
+    RequestQueue provideRequestQueue(Application application) {
+        return Volley.newRequestQueue(application);
+    }
+
+    /**
+     * Provides singleton instance of {@link ApiService} class
+     *
+     * @return a instance of ApiService
+     */
+    @Provides
+    @Singleton
+    ApiService provideApiService(RequestQueue requestQueue) {
+        return new ApiService(requestQueue);
+    }
+
+    @Singleton
+    @Provides
+    FmaApiService provideFmaApiService(ApiService apiService) {
+        return new FmaApiService(apiService);
+    }
+}
+----------------------------------------------------------------------------------------------------
+ApplicationModual
+package com.android.msahakyan.fma.di.module;
+
+import android.app.Application;
+
+import javax.inject.Singleton;
+
+import dagger.Module;
+import dagger.Provides;
+
+/**
+ * Created by msahakyan on 01/07/16.
+ */
+
+@Module
+public class ApplicationModule {
+
+    private Application application;
+
+    public ApplicationModule(Application application) {
+        this.application = application;
+    }
+
+    /**
+     * Provides singleton instance of the {@link Application} object
+     *
+     * @return a application instance
+     */
+    @Provides
+    @Singleton
+    Application provideApplication() {
+        return application;
+    }
+}
+---------------------------------------------------------------------------------------------
+ImageLoaderModual
+package com.android.msahakyan.fma.di.module;
+
+import com.android.msahakyan.fma.util.cache.BitmapLruCache;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.ImageLoader;
+
+import javax.inject.Singleton;
+
+import dagger.Module;
+import dagger.Provides;
+
+/**
+ * @author msahakyan
+ */
+
+@Module
+public class ImageLoaderModule {
+
+    /**
+     * Provides singleton instance of ImageCache
+     *
+     * @return a instance of {@link BitmapLruCache}
+     */
+    @Singleton
+    @Provides
+    ImageLoader.ImageCache provideImageCache() {
+        return new BitmapLruCache();
+    }
+
+    /**
+     * Provides singleton instance of Volley {@link ImageLoader}
+     *
+     * @param requestQueue The volley RequestQueue instance
+     * @param imageCache   The instance of ImageCache (see: BitmapLruCache)
+     * @return a instance of ImageLoader
+     */
+    @Singleton
+    @Provides
+    ImageLoader provideImageLoader(RequestQueue requestQueue, ImageLoader.ImageCache imageCache) {
+        return new ImageLoader(requestQueue, imageCache);
+    }
+}
+---------------------------------------------------------------------------------------------
+NavigationModule
+package com.android.msahakyan.fma.di.module;
+
+import android.support.v7.app.AppCompatActivity;
+
+import com.android.msahakyan.fma.di.scope.NavigationScope;
+import com.android.msahakyan.fma.fragment.FragmentNavigationManager;
+import com.android.msahakyan.fma.fragment.NavigationManager;
+
+import dagger.Module;
+import dagger.Provides;
+
+/**
+ * @author msahakyan
+ */
+
+@Module
+public class NavigationModule {
+
+    private AppCompatActivity activity;
+
+    public NavigationModule(AppCompatActivity activity) {
+        this.activity = activity;
+    }
+
+    /**
+     * Provides instance of {@link NavigationManager}
+     *
+     * @return a instance of FragmentNavigationManager with @NavigationScope
+     */
+    @NavigationScope
+    @Provides
+    NavigationManager provideNavigationManager() {
+        return new FragmentNavigationManager(activity);
+    }
+}
+------------------------------------------------------------------------------------------------------
+StorageModule
+package com.android.msahakyan.fma.di.module;
+
+import android.app.Application;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
+import javax.inject.Singleton;
+
+import dagger.Module;
+import dagger.Provides;
+
+/**
+ * Created by msahakyan on 01/07/16.
+ */
+
+@Module
+public class StorageModule {
+
+    /**
+     * Provides singleton instance of default shared preferences
+     *
+     * @param app The application instance
+     * @return a default {@link SharedPreferences} instance from Preferences manager
+     */
+    @Provides
+    @Singleton
+    SharedPreferences provideSharedPreferences(Application app) {
+        return PreferenceManager.getDefaultSharedPreferences(app);
+    }
+}
+---------------------------------------------------------------------------------------------
+NavigationScope
+package com.android.msahakyan.fma.di.scope;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+
+import javax.inject.Scope;
+
+/**
+ * @author msahakyan
+ *         <p>
+ *         Provides custom NavigationScope``
+ */
+
+@Scope
+@Retention(RetentionPolicy.RUNTIME)
+public @interface NavigationScope {
+}
+----------------------------------------------------------------------------------
+AlbumDetailFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.graphics.Paint;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.AppUtils;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.view.FadeInNetworkImageView;
+import com.android.volley.toolbox.ImageLoader;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import butterknife.OnClick;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link AlbumDetailFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class AlbumDetailFragment extends BaseItemDetailFragment<Album> implements ItemClickListener<Item> {
+
+    @Inject
+    FmaApiService fmaApiService;
+    @Inject
+    ImageLoader imageLoader;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.album_image)
+    FadeInNetworkImageView mAlbumImageView;
+    @Bind(R.id.item_title)
+    TextView mTitleView;
+    @Bind(R.id.artist_name)
+    TextView mArtistName;
+    @Bind(R.id.artist_image)
+    FadeInNetworkImageView mArtistImage;
+    @Bind(R.id.artist_creation_date)
+    TextView mArtistCreationDate;
+    @Bind(R.id.artist_info_container)
+    RelativeLayout mArtistInfoContainer;
+    private InterstitialAd mInterstitialAd;
+    List<Item> mitem;
+    int mholder;
+
+
+    private NetworkRequestListener<Page<Item>> mNetworkRequestListener;
+    private ItemListAdapter adapter;
+    private int mPage;
+    private Artist mArtist;
+
+    public AlbumDetailFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param album Album instance.
+     * @return A new instance of fragment AlbumDetailFragment.
+     */
+    public static AlbumDetailFragment newInstance(Album album) {
+        AlbumDetailFragment fragment = new AlbumDetailFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(KEY_ITEM_PARCEL, album);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed() {
+                navigationManager.showTrackPlayFragment(mitem, mholder);
+                mInterstitialAd.loadAd(new AdRequest.Builder().build());
+
+            }
+        });
+        mNetworkRequestListener = new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (response != null && statusCode == HttpURLConnection.HTTP_OK) {
+                    Timber.d("Received response for tracks: " + response.getItems().size());
+                    showExtrasView(response);
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                Timber.w(errorMessage);
+                showErrorView();
+            }
+        };
+
+        createTracksAdapter();
+    }
+
+    private void showExtrasView(Page<Item> response) {
+        if (adapter != null) {
+            adapter.clear();
+            adapter.addAll(response.getItems());
+        }
+    }
+
+    private void setLayoutManager() {
+        LinearLayoutManager layoutManager = new LinearLayoutManager(activity);
+        mListView.setLayoutManager(layoutManager);
+        mListView.setAdapter(adapter);
+    }
+
+    private void createTracksAdapter() {
+        mPage = 1;
+        adapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_album_detail, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        showContentView();
+        setLayoutManager();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        loadArtistInfo();
+    }
+
+    private void loadArtistInfo() {
+        fmaApiService.getArtistByName(new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+                    mArtist = (Artist) response.getItems().get(0);
+                    // Setting artist image when details info is loaded
+                    if (mArtistImage != null) {
+                        mArtistImage.setErrorImageResId(R.drawable.artist_icon);
+                        mArtistImage.setImageUrl(mArtist.getImage(), imageLoader);
+                    }
+                    if (mArtistCreationDate != null) {
+                        mArtistCreationDate.setText(AppUtils.getCreationDateOnly(mArtist.getCreationDate()));
+                    }
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                Timber.w("Error when loading artist info [statusCode: " + statusCode +
+                    ", errorMessage: " + errorMessage);
+
+            }
+        }, item.getArtistName());
+    }
+
+    @Override
+    protected void showBasicView() {
+        mAlbumImageView.setImageUrl(item.getImageFile(), imageLoader);
+        mTitleView.setText(item.getTitle());
+        mArtistName.setText(item.getArtistName());
+        mArtistImage.setImageResource(R.drawable.artist_icon);
+
+        boolean isDetailsAvailable = !TextUtils.isEmpty(item.getInformation());
+
+        if (isDetailsAvailable) {
+            mTitleView.setPaintFlags(mTitleView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            mTitleView.setTextColor(ContextCompat.getColor(activity, R.color.colorAccent));
+            mTitleView.setOnClickListener(v ->
+                AppUtils.showCustomDialog(activity, item.getInformation()));
+        }
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        fmaApiService.getTracksByAlbumId(mNetworkRequestListener, item.getId(), mPage);
+    }
+
+    @OnClick(R.id.artist_info_container)
+    public void onArtistInfoClick(View v) {
+        navigationManager.showArtistDetailFragment(mArtist);
+    }
+
+    @Override
+    public void onActivityCreated(@android.support.annotation.Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+        ActionBar actionBar = activity.getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.show();
+        }
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+
+        mitem=adapter.getItems();
+        mholder= holder.getAdapterPosition();
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        } else {
+            navigationManager.showTrackPlayFragment(mitem, mholder);
+        }
+    }
+}
+--------------------------------------------------------------------------------------------
+AlbumFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.adapter.delegates.AlbumAdapterDelegate;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.InfiniteScrollListener;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.util.ItemDecorator;
+import com.android.msahakyan.fma.view.MoreDataLoaderView;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link AlbumsFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class AlbumsFragment extends BaseNetworkRequestFragment<Page<Item>> implements
+    MoreDataLoaderView.LoadMoreDataCallback, ItemClickListener<Item> {
+
+    @Inject
+    FmaApiService fmaApiService;
+
+    private static final int DEFAULT_THRESHOLD = 1;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.loading_footer)
+    MoreDataLoaderView mLoadingFooter;
+
+    private ItemListAdapter mAdapter;
+    private InfiniteScrollListener mInfiniteScrollListener;
+    private int mPage = 2; // skip first page
+    Item mitem;
+    RecyclerView.ViewHolder mholder;
+
+    private InterstitialAd mInterstitialAd;
+
+    public AlbumsFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment GenresFragment.
+     */
+    public static AlbumsFragment newInstance() {
+        return new AlbumsFragment();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed() {
+                navigationManager.showAlbumDetailFragment((Album) mitem, (AlbumAdapterDelegate.AlbumViewHolder) mholder);
+                mInterstitialAd.loadAd(new AdRequest.Builder().build());
+                // Code to be executed when when the interstitial ad is closed.
+            }
+        });
+
+        createAdapter();
+        mInfiniteScrollListener = new InfiniteScrollListener(DEFAULT_THRESHOLD) {
+            @Override
+            protected void onLoadMore() {
+                mLoadingFooter.setLoadingShown(isResumed() && mAdapter.getItemCount() > 0);
+                loadMoreData();
+            }
+        };
+        setHasOptionsMenu(true);
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 2);
+        mListView.setLayoutManager(layoutManager);
+        mInfiniteScrollListener.setLayoutManager(layoutManager);
+
+        mListView.addOnScrollListener(mInfiniteScrollListener);
+        mListView.setAdapter(mAdapter);
+        mListView.addItemDecoration(new ItemDecorator(3, 3));
+    }
+
+    private void createAdapter() {
+        mPage = 2;
+        mAdapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_albums, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(mListView);
+        setLayoutManager();
+        mLoadingFooter.setLoadDataCallback(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getView() != null && mAdapter != null) {
+            if (mAdapter.getItems().isEmpty()) {
+                showProgressView();
+                refresh();
+            } else {
+                hideProgressView();
+                Timber.d("Items already loaded -- skip");
+            }
+        }
+    }
+
+    @Override
+    protected void onSuccess(Page<Item> response, int statusCode) {
+        super.onSuccess(response, statusCode);
+        hideProgressView();
+
+        if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+            showAlbums(response.getItems());
+        } else {
+            Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+            super.onError(statusCode, "Something went wrong!");
+        }
+    }
+
+    private void showAlbums(List<Item> items) {
+        mAdapter.addAll(items);
+    }
+
+    @Override
+    protected void onError(int statusCode, String errorMessage) {
+        super.onError(statusCode, errorMessage);
+        hideProgressView();
+        Toast.makeText(activity, "Status code: " + statusCode + " error: " + errorMessage, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        setNetworkRequest(fmaApiService.getAlbums(getNetworkListener(), mPage));
+    }
+
+    @Override
+    public void loadMoreData() {
+        fmaApiService.getAlbums(new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+                    AlbumsFragment.this.onLoadMoreDataSuccess(response.getItems());
+                } else {
+                    Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+                    onError(statusCode, "Something went wrong!");
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                AlbumsFragment.this.onError(statusCode, errorMessage);
+            }
+        }, ++mPage);
+    }
+
+    private void onLoadMoreDataSuccess(List<Item> result) {
+        mInfiniteScrollListener.setVisibleThreshold(Math.max(DEFAULT_THRESHOLD, result.size() / 2));
+        if (mLoadingFooter != null) {
+            mLoadingFooter.setLoadingShown(false);
+        }
+        mAdapter.addAll(result);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        if (activity != null) {
+            activity.showSearchIcon(true);
+        }
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+
+        mitem=item;
+        mholder=holder;
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        } else {
+            navigationManager.showAlbumDetailFragment((Album) mitem, (AlbumAdapterDelegate.AlbumViewHolder) mholder);
+
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+}
+----------------------------------------------------------------------------------------------
+ArtistDetailFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.graphics.Paint;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.adapter.delegates.AlbumAdapterDelegate;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.AppUtils;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.view.FadeInNetworkImageView;
+import com.android.volley.toolbox.ImageLoader;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link ArtistDetailFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class ArtistDetailFragment extends BaseItemDetailFragment<Artist> implements ItemClickListener<Item> {
+
+    private static final String KEY_ITEM_URL = "KEY_ITEM_URL";
+
+    @Inject
+    FmaApiService fmaApiService;
+    @Inject
+    ImageLoader imageLoader;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.artist_image)
+    FadeInNetworkImageView mArtistImageView;
+    @Bind(R.id.artist_name)
+    TextView mArtistName;
+    @Bind(R.id.artist_bio)
+    TextView mArtistBio;
+    @Bind(R.id.artist_creation_date)
+    TextView mCreationDate;
+    @Bind(R.id.artist_followers)
+    TextView mFollowers;
+    @Bind(R.id.artist_comments)
+    TextView mComments;
+    @Bind(R.id.artist_location)
+    TextView mLocation;
+    @Bind(R.id.label_albums)
+    TextView mAlbumsLabel;
+
+    private NetworkRequestListener<Page<Item>> mNetworkRequestListener;
+    private ItemListAdapter mAdapter;
+
+    public ArtistDetailFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param artist The artist instance.
+     * @return A new instance of fragment ArtistDetailFragment.
+     */
+    public static ArtistDetailFragment newInstance(Artist artist) {
+        ArtistDetailFragment fragment = new ArtistDetailFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(KEY_ITEM_PARCEL, artist);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    public static ArtistDetailFragment newInstance(String artistUrl) {
+        ArtistDetailFragment fragment = new ArtistDetailFragment();
+        Bundle args = new Bundle();
+        args.putString(KEY_ITEM_URL, artistUrl);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mNetworkRequestListener = new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (response != null && statusCode == HttpURLConnection.HTTP_OK) {
+                    Timber.d("Received response for artist's albums: " + response.getItems().size());
+                    showExtrasView(response);
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                Timber.w(errorMessage);
+                showErrorView();
+            }
+        };
+
+        createAlbumsAdapter();
+    }
+
+    private void showExtrasView(Page<Item> response) {
+        if (mAdapter != null) {
+            mAdapter.clear();
+            List<Item> albums = response.getItems();
+            mAdapter.addAll(albums);
+            updateAlbumCount(albums.size());
+        }
+    }
+
+    private void updateAlbumCount(int size) {
+        try {
+            mAlbumsLabel.setText(getString(R.string.label_albums) + " (" + size + ")");
+        }catch (Exception e){}
+
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 2);
+        mListView.setLayoutManager(layoutManager);
+        mListView.setAdapter(mAdapter);
+    }
+
+    private void createAlbumsAdapter() {
+        mAdapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_artist_detail, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        showContentView();
+        setLayoutManager();
+    }
+
+    @Override
+    protected void showBasicView() {
+        mArtistImageView.setImageUrl(item.getImage(), imageLoader);
+        mArtistName.setText(item.getName());
+        if (item.getBio() != null) {
+            mArtistBio.setVisibility(View.VISIBLE);
+            mArtistBio.setPaintFlags(mArtistBio.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+            mArtistBio.setText(getString(R.string.artist_bio));
+            mArtistBio.setTextColor(ContextCompat.getColor(activity, R.color.colorAccent));
+            mArtistBio.setOnClickListener(v ->
+                AppUtils.showCustomDialog(activity, item.getBio()));
+        }
+        mCreationDate.setText(getString(R.string.artist_creation_date, AppUtils.getCreationDateOnly(item.getCreationDate())));
+        mFollowers.setText(getString(R.string.artist_favourites, item.getFavouritesCount()));
+        mComments.setText(getString(R.string.artist_comments, item.getCommentsCount()));
+        if (item.getLocation() != null) {
+            mLocation.setText(getString(R.string.artist_location, item.getLocation()));
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        fmaApiService.getAlbumsByArtistName(mNetworkRequestListener, item.getName());
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+        navigationManager.showAlbumDetailFragment((Album) item, (AlbumAdapterDelegate.AlbumViewHolder) holder);
+    }
+}
+---------------------------------------------------------------------------------------------
+ArtistFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.activity.MainActivity;
+import com.android.msahakyan.fma.activity.SplashScreenActivity;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.InfiniteScrollListener;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.view.MoreDataLoaderView;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link ArtistsFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class ArtistsFragment extends BaseNetworkRequestFragment<Page<Item>> implements
+    MoreDataLoaderView.LoadMoreDataCallback, ItemClickListener<Item> {
+
+    private static final int DEFAULT_THRESHOLD = 1;
+
+    @Inject
+    FmaApiService fmaApiService;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.loading_footer)
+    MoreDataLoaderView mLoadingFooter;
+
+    private ItemListAdapter mAdapter;
+    private InfiniteScrollListener mInfiniteScrollListener;
+    private int mPage;
+    Item mitem;
+
+    private InterstitialAd mInterstitialAd;
+    public ArtistsFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment GenresFragment.
+     */
+    public static ArtistsFragment newInstance() {
+        return new ArtistsFragment();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed() {
+                navigationManager.showArtistDetailFragment((Artist) mitem);
+                mInterstitialAd.loadAd(new AdRequest.Builder().build());
+                // Code to be executed when when the interstitial ad is closed.
+            }
+        });
+
+
+
+
+        createAdapter();
+        mInfiniteScrollListener = new InfiniteScrollListener(DEFAULT_THRESHOLD) {
+            @Override
+            protected void onLoadMore() {
+                mLoadingFooter.setLoadingShown(isResumed() && mAdapter.getItemCount() > 0);
+                loadMoreData();
+            }
+        };
+        setHasOptionsMenu(true);
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 2);
+        mListView.setLayoutManager(layoutManager);
+        mInfiniteScrollListener.setLayoutManager(layoutManager);
+
+        mListView.addOnScrollListener(mInfiniteScrollListener);
+        mListView.setAdapter(mAdapter);
+    }
+
+    private void createAdapter() {
+        mPage = 1;
+        mAdapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_artists, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(mListView);
+        setLayoutManager();
+        mLoadingFooter.setLoadDataCallback(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getView() != null && mAdapter != null) {
+            if (mAdapter.getItems().isEmpty()) {
+                showProgressView();
+                refresh();
+            } else {
+                hideProgressView();
+                Timber.d("Items already loaded -- skip");
+            }
+        }
+    }
+
+    @Override
+    protected void onSuccess(Page<Item> response, int statusCode) {
+        super.onSuccess(response, statusCode);
+        hideProgressView();
+
+        if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+            showArtists(response.getItems());
+        } else {
+            Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+            super.onError(statusCode, "Something went wrong!");
+        }
+    }
+
+    private void showArtists(List<Item> items) {
+        mAdapter.addAll(items);
+    }
+
+    @Override
+    protected void onError(int statusCode, String errorMessage) {
+        super.onError(statusCode, errorMessage);
+        hideProgressView();
+        Toast.makeText(activity, "Status code: " + statusCode + " error: " + errorMessage, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        setNetworkRequest(fmaApiService.getArtists(getNetworkListener(), mPage));
+    }
+
+    @Override
+    public void loadMoreData() {
+        fmaApiService.getArtists(new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+                    ArtistsFragment.this.onLoadMoreDataSuccess(response.getItems());
+                } else {
+                    Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+                    onError(statusCode, "Something went wrong!");
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                ArtistsFragment.this.onError(statusCode, errorMessage);
+            }
+        }, ++mPage);
+    }
+
+    private void onLoadMoreDataSuccess(List<Item> result) {
+        mInfiniteScrollListener.setVisibleThreshold(Math.max(DEFAULT_THRESHOLD, result.size() / 2));
+        if (mLoadingFooter != null) {
+            mLoadingFooter.setLoadingShown(false);
+        }
+        mAdapter.addAll(result);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        if (activity != null) {
+            activity.showSearchIcon(true);
+        }
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+
+        mitem=item;
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        } else {
+            navigationManager.showArtistDetailFragment((Artist) mitem);
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+}
+-----------------------------------------------------------------------------------------------------------------
+BaseFRagment
+package com.android.msahakyan.fma.fragment;
+
+/**
+ * Created by msahakyan on 03/08/16.
+ */
+
+import android.content.Context;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.view.View;
+
+import com.android.msahakyan.fma.activity.MainActivity;
+import com.android.msahakyan.fma.util.ConnectivityUtil;
+
+import butterknife.ButterKnife;
+
+public abstract class BaseFragment extends Fragment {
+
+    protected MainActivity activity;
+    protected NavigationManager navigationManager;
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        activity = (MainActivity) context;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        navigationManager = activity.getNavigationManager();
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        ButterKnife.bind(this, view);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        onBeforeDestroyView();
+        ButterKnife.unbind(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!ConnectivityUtil.isConnectedToNetwork(activity)) {
+            ConnectivityUtil.notifyNoConnection(activity);
+        }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        navigationManager = null;
+        activity = null;
+    }
+
+    /**
+     * Override in child classes in order to clear data (listeners,
+     * adapters etc) before the view will be destroyed
+     */
+    public void onBeforeDestroyView() {
+    }
+}
+-------------------------------------------------------------------------------------------------
+BaseItemDetailFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.view.View;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.util.Item;
+
+import butterknife.Bind;
+
+/**
+ * Created by msahakyan on 07/08/16.
+ */
+
+public abstract class BaseItemDetailFragment<T extends Item> extends BaseLceFragment {
+
+    protected static final String KEY_ITEM_PARCEL = "key_item_parcel";
+
+    @Bind(R.id.main_detail_container)
+    View contentView;
+
+    protected T item;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        if (getArguments() != null) {
+            item = getArguments().getParcelable(KEY_ITEM_PARCEL);
+        }
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(contentView);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (item != null) {
+            showBasicView();
+            refresh();
+        }
+    }
+
+    // Show basic view before related items will be loaded
+    protected abstract void showBasicView();
+
+    protected void setItem(T item) {
+        this.item = item;
+    }
+}
+------------------------------------------------------------------------------------------
+BaseLceFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.view.View;
+import android.widget.TextView;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.util.ConnectivityUtil;
+import com.github.rahatarmanahmed.cpv.CircularProgressView;
+
+import butterknife.Bind;
+import butterknife.OnClick;
+import timber.log.Timber;
+
+/**
+ * Created by msahakyan on 03/08/16.
+ */
+
+public class BaseLceFragment extends BaseFragment {
+
+    @Bind(R.id.progress_view)
+    protected CircularProgressView mProgressView;
+
+    @Bind(R.id.error_view)
+    View mErrorView;
+
+    @Nullable
+    @Bind(R.id.empty_view)
+    View mEmptyView;
+
+    @Nullable
+    @Bind(R.id.error_message)
+    TextView mErrorMessage;
+
+    private View mContentView;
+
+    @Override
+    public void onBeforeDestroyView() {
+        super.onBeforeDestroyView();
+        mContentView = null;
+    }
+
+    @OnClick(R.id.error_view)
+    protected void onClickError(View view) {
+        if (ConnectivityUtil.isConnectedToNetwork(activity)) {
+            refresh();
+        } else {
+            ConnectivityUtil.notifyNoConnection(activity);
+        }
+    }
+
+    public void refresh() {
+//        showProgressView();
+    }
+
+    protected void setContentView(View contentView) {
+        mContentView = contentView;
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        initEmptyView(activity.getString(R.string.no_data), null);
+    }
+
+    protected void initEmptyView(String text, View.OnClickListener onClickListener) {
+        if (mEmptyView != null) {
+            mEmptyView.setOnClickListener(onClickListener);
+            if (mErrorMessage != null) {
+                mErrorMessage.setText(text);
+            }
+        }
+    }
+
+    public void showEmptyView() {
+        if (mEmptyView != null) {
+            mEmptyView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    public void hideEmptyView() {
+        if (mEmptyView != null) {
+            mEmptyView.setVisibility(View.GONE);
+        }
+    }
+
+    public void showProgressView() {
+        if (mContentView == null) {
+            Timber.w("Can't show progress view because contentView is not set.");
+        }
+        hideEmptyView();
+        mContentView.setVisibility(View.GONE);
+        mErrorView.setVisibility(View.GONE);
+        mProgressView.setVisibility(View.VISIBLE);
+        mProgressView.startAnimation();
+    }
+
+    public void hideProgressView() {
+        if (mProgressView != null) {
+            mProgressView.stopAnimation();
+            mProgressView.setVisibility(View.GONE);
+        }
+    }
+
+    public void showContentView() {
+
+        try {
+            hideEmptyView();
+            hideProgressView();
+            mErrorView.setVisibility(View.GONE);
+            mContentView.setVisibility(View.VISIBLE);
+        }catch (Exception e){}
+
+    }
+
+    public void showErrorView() {
+        hideEmptyView();
+        hideProgressView();
+        mContentView.setVisibility(View.GONE);
+        mErrorView.setVisibility(View.VISIBLE);
+    }
+}
+--------------------------------------------------------------------------------------------------------------
+BaseNetworkRequestFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.network.CancelableRequest;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+
+import javax.inject.Inject;
+
+import timber.log.Timber;
+
+public abstract class BaseNetworkRequestFragment<T> extends BaseLceFragment {
+
+    private CancelableRequest mCurrentRequest;
+
+    private NetworkRequestListener<T> mNetworkRequestListener;
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mNetworkRequestListener = new NetworkRequestListener<T>() {
+            @Override
+            public void onSuccess(T response, int statusCode) {
+                if (activity == null || getView() == null) {
+                    Timber.w("Received response when the fragment has already been destroyed");
+                    return;
+                }
+                BaseNetworkRequestFragment.this.onSuccess(response, statusCode);
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                BaseNetworkRequestFragment.this.onError(statusCode, errorMessage);
+            }
+        };
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (isRequestActive()) {
+            mCurrentRequest.cancel();
+            Timber.d("Cancelling request");
+        }
+        mCurrentRequest = null;
+    }
+
+    protected boolean isRequestActive() {
+        return mCurrentRequest != null && mCurrentRequest.isOngoing();
+    }
+
+    protected void onSuccess(T response, int statusCode) {
+        showContentView();
+    }
+
+    protected void onError(int statusCode, String errorMessage) {
+        Timber.w(errorMessage);
+        hideProgressView();
+        showErrorView();
+    }
+
+    public NetworkRequestListener<T> getNetworkListener() {
+        return mNetworkRequestListener;
+    }
+
+    protected CancelableRequest getNetworkRequest() {
+        return mCurrentRequest;
+    }
+
+    protected void setNetworkRequest(CancelableRequest request) {
+        mCurrentRequest = request;
+    }
+}
+-------------------------------------------------------------------------------------------
+BasePagerFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.app.Activity;
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.view.View;
+
+import com.android.msahakyan.fma.activity.MainActivity;
+import com.android.msahakyan.fma.util.ConnectivityUtil;
+
+import butterknife.ButterKnife;
+
+/**
+ * Created by msahakyan on 05/09/16.
+ */
+public class BasePagerFragment extends Fragment {
+
+    protected MainActivity activity;
+    protected NavigationManager navigationManager;
+
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        this.activity = (MainActivity) activity;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        navigationManager = activity.getNavigationManager();
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        activity = null;
+        navigationManager = null;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        ButterKnife.bind(this, view);
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (!ConnectivityUtil.isConnectedToNetwork(activity)) {
+            ConnectivityUtil.notifyNoConnection(activity);
+        }
+    }
+}
+------------------------------------------------------------------------------------------------------------
+FragmentNavigationManager
+package com.android.msahakyan.fma.fragment;
+
+import android.annotation.SuppressLint;
+import android.os.Build;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
+import android.transition.Fade;
+import android.view.View;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.BuildConfig;
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.activity.MainActivity;
+import com.android.msahakyan.fma.adapter.delegates.AlbumAdapterDelegate;
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Genre;
+import com.android.msahakyan.fma.model.SearchResultItem;
+import com.android.msahakyan.fma.transition.DetailsTransition;
+import com.android.msahakyan.fma.util.Item;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import timber.log.Timber;
+
+/**
+ * @author msahakyan
+ */
+
+public class FragmentNavigationManager implements NavigationManager {
+
+    private static final int LEAVE_APP_INTERVAL = 2000;
+
+    private MainActivity activity;
+    private FragmentManager fragmentManager;
+
+    private long mLastBackPressed;
+
+    public FragmentNavigationManager(AppCompatActivity activity) {
+        if (activity instanceof MainActivity) {
+            this.activity = (MainActivity) activity;
+            this.fragmentManager = this.activity.getSupportFragmentManager();
+        } else {
+            throw new IllegalArgumentException("Navigation Manager instance can be obtained only from MainActivity instance!!");
+        }
+    }
+
+    @Override
+    public void showGenresFragment() {
+        showFragment(GenresFragment.newInstance(), true, true);
+    }
+
+    @Override
+    public void showAlbumsFragment() {
+        showFragment(AlbumsFragment.newInstance(), true, true);
+    }
+
+    @Override
+    public void showArtistsFragment() {
+        showFragment(ArtistsFragment.newInstance(), true, true);
+    }
+
+    @Override
+    public void showArtistDetailFragment(Artist artist) {
+        showFragment(ArtistDetailFragment.newInstance(artist), true, false);
+    }
+
+    @Override
+    public void showTracksFragmentByGenre(Genre genre) {
+        showFragment(TracksFragment.newInstance(genre), true, false);
+    }
+
+    @Override
+    public void showArtistDetailFragment(String artistUrl) {
+        showFragment(ArtistDetailFragment.newInstance(artistUrl), true, false);
+    }
+
+    @Override
+    public void showAlbumDetailFragment(Album album, AlbumAdapterDelegate.AlbumViewHolder holder) {
+        showFragmentWithTransition(AlbumDetailFragment.newInstance(album), holder.imageView, "albumImage", true, false);
+    }
+
+    @Override
+    public void showTrackPlayFragment(List<Item> tracks, int position) {
+        showFragment(TrackDetailFragment.newInstance(new ArrayList<>(tracks), position), true, false);
+    }
+
+    @Override
+    public void showMainPagerFragment() {
+        showFragment(MainPagerFragment.newInstance(), true, true);
+    }
+
+    private void showFragment(Fragment fragment, boolean allowStateLoss, boolean clearStack) {
+        FragmentManager fm = fragmentManager;
+
+        if (clearStack) {
+            clearBackStack(fm);
+        }
+
+        @SuppressLint("CommitTransaction")
+        FragmentTransaction ft = fm.beginTransaction()
+            .replace(R.id.container, fragment);
+
+        ft.addToBackStack(null);
+
+        if (allowStateLoss || !BuildConfig.DEBUG) {
+            ft.commitAllowingStateLoss();
+        } else {
+            ft.commit();
+        }
+
+        fm.executePendingTransactions();
+    }
+
+    private void showFragmentWithTransition(Fragment fragment, View sharedView, String transitionName, boolean allowStateLoss, boolean clearStack) {
+        FragmentManager fm = fragmentManager;
+
+        if (clearStack) {
+            clearBackStack(fm);
+        }
+
+        @SuppressLint("CommitTransaction")
+        FragmentTransaction ft = fm.beginTransaction()
+            .replace(R.id.container, fragment);
+
+        ft.addToBackStack(null);
+        ft.addSharedElement(sharedView, transitionName);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            fragment.setSharedElementEnterTransition(new DetailsTransition());
+            fragment.setEnterTransition(new Fade());
+            fragment.setExitTransition(new Fade());
+            fragment.setSharedElementReturnTransition(new DetailsTransition());
+        }
+
+        if (allowStateLoss || !BuildConfig.DEBUG) {
+            ft.commitAllowingStateLoss();
+        } else {
+            ft.commit();
+        }
+
+        fm.executePendingTransactions();
+    }
+
+    @Override
+    public Fragment getCurrentFragment() {
+        return fragmentManager.findFragmentById(R.id.container);
+    }
+
+    @Override
+    public void onBackPress() {
+        int backStackSize = fragmentManager.getBackStackEntryCount();
+
+        // If there is only one fragment left, then show toast for exit
+        if (backStackSize <= 1) {
+            long currentTime = System.currentTimeMillis();
+            if (mLastBackPressed + LEAVE_APP_INTERVAL > currentTime) {
+                activity.finish();
+            } else {
+                Toast.makeText(activity, R.string.toast_back_to_exit, Toast.LENGTH_SHORT).show();
+                mLastBackPressed = currentTime;
+            }
+            return;
+        }
+
+        activity.pressBack();
+    }
+
+    @Override
+    public void showSearchSuggestionsFragment() {
+        showFragment(SearchSuggestionsFragment.newInstance(), true, false);
+    }
+
+    @Override
+    public void showSearchResultsFragment(List<SearchResultItem> response, String query) {
+        showFragment(SearchResultsFragment.newInstance(new ArrayList<>(response), query), true, false);
+    }
+
+    private void clearBackStack(FragmentManager fragmentManager) {
+        try {
+            fragmentManager.popBackStack(null, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+        } catch (Exception e) {
+            Timber.e(e.getMessage());
+        }
+    }
+}
+----------------------------------------------------------------------------------------------------------------------
+GenresFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Genre;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.InfiniteScrollListener;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.view.MoreDataLoaderView;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * Use the {@link GenresFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class GenresFragment extends BaseNetworkRequestFragment<Page<Item>> implements
+    MoreDataLoaderView.LoadMoreDataCallback, ItemClickListener<Item> {
+
+    private static final int THRESHOLD = 1;
+
+    @Inject
+    FmaApiService fmaApiService;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.loading_footer)
+    MoreDataLoaderView mLoadingFooter;
+
+    private ItemListAdapter mAdapter;
+    private InfiniteScrollListener mInfiniteScrollListener;
+    private int mPage;
+    private boolean mCanLoadMore = true;
+    private InterstitialAd mInterstitialAd;
+
+    public GenresFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment GenresFragment.
+     */
+    public static GenresFragment newInstance() {
+        return new GenresFragment();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed() {
+                Toast.makeText(getActivity(),"network error genres service down try again later",Toast.LENGTH_SHORT).show();
+                //navigationManager.showTracksFragmentByGenre((Genre) item);
+                // Code to be executed when when the interstitial ad is closed.
+            }
+        });
+
+
+        createAdapter();
+        mInfiniteScrollListener = new InfiniteScrollListener(THRESHOLD) {
+            @Override
+            protected void onLoadMore() {
+                loadMoreData();
+            }
+        };
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 1);
+        mListView.setLayoutManager(layoutManager);
+        mInfiniteScrollListener.setLayoutManager(layoutManager);
+
+        mListView.addOnScrollListener(mInfiniteScrollListener);
+
+        mListView.setAdapter(mAdapter);
+    }
+
+    private void createAdapter() {
+        mPage = 1;
+        mAdapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_genres, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(mListView);
+        setLayoutManager();
+        mLoadingFooter.setLoadDataCallback(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getView() != null && mAdapter != null) {
+            if (mAdapter.getItems().isEmpty()) {
+                showProgressView();
+                refresh();
+            } else {
+                hideProgressView();
+                Timber.d("Items already loaded -- skip");
+            }
+        }
+    }
+
+    @Override
+    protected void onSuccess(Page<Item> response, int statusCode) {
+        super.onSuccess(response, statusCode);
+        hideProgressView();
+
+        if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+            List<Item> items = response.getItems();
+            Collections.sort(items);
+            showGenres(items);
+        } else {
+            Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+            super.onError(statusCode, "Something went wrong!");
+        }
+    }
+
+    private void showGenres(List<Item> items) {
+        mAdapter.addAll(items);
+    }
+
+    @Override
+    protected void onError(int statusCode, String errorMessage) {
+        super.onError(statusCode, errorMessage);
+        hideProgressView();
+        Toast.makeText(activity, "Status code: " + statusCode + " error: " + errorMessage, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        setNetworkRequest(fmaApiService.getGenres(getNetworkListener(), mPage));
+    }
+
+    @Override
+    public void loadMoreData() {
+        if (mCanLoadMore) {
+            mLoadingFooter.setLoadingShown(isResumed() && mAdapter.getItemCount() > 0);
+            fmaApiService.getGenres(new NetworkRequestListener<Page<Item>>() {
+                @Override
+                public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                    if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+                        if (response.getPage() == response.getTotalPages()) {
+                            mCanLoadMore = false;
+                        }
+                        GenresFragment.this.onLoadMoreDataSuccess(response.getItems());
+                    } else {
+                        Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+                        onError(statusCode, "Something went wrong!");
+                    }
+                }
+
+                @Override
+                public void onError(int statusCode, String errorMessage) {
+                    GenresFragment.this.onError(statusCode, errorMessage);
+                }
+            }, ++mPage);
+        } else {
+            Timber.d("Can't load more data. All " + mPage + " pages are loaded -- skip");
+        }
+    }
+
+    private void onLoadMoreDataSuccess(List<Item> newItems) {
+        mInfiniteScrollListener.setVisibleThreshold(Math.max(THRESHOLD, newItems.size() / 2));
+        if (mLoadingFooter != null) {
+            mLoadingFooter.setLoadingShown(false);
+        }
+        mAdapter.addAll(newItems);
+        List<Item> items = mAdapter.getItems();
+        Collections.sort(items);
+        mAdapter.notifyDataSetChanged();
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        } else {
+            Toast.makeText(getActivity(),"network error genres service down try again later",Toast.LENGTH_SHORT).show();
+        }
+        //navigationManager.showTracksFragmentByGenre((Genre) item);
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+}
+-----------------------------------------------------------------------------------------------------------------------
+MainPagerFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.Fragment;
+import android.support.v4.view.PagerTabStrip;
+import android.support.v4.view.ViewPager;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.pagers.WheelAdapter;
+import com.android.msahakyan.fma.util.ZoomOutPageTransformer;
+
+import java.util.Arrays;
+import java.util.List;
+
+import butterknife.Bind;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link MainPagerFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class MainPagerFragment extends BasePagerFragment {
+
+    public static final String PAGE_GENRES = "GENRES";
+    public static final String PAGE_ALBUMS = "ALBUMS";
+    public static final String PAGE_ARTISTS = "ARTISTS";
+
+    @Bind(R.id.pts_main)
+    PagerTabStrip mTabStrip;
+    @Bind(R.id.vp_main)
+    ViewPager mViewPager;
+
+    protected WheelAdapter mAdapter;
+    private ViewPager.OnPageChangeListener mPageChangedListener;
+
+    public MainPagerFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment.
+     *
+     * @return A new instance of fragment MainPagerFragment.
+     */
+    public static MainPagerFragment newInstance() {
+        return new MainPagerFragment();
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mPageChangedListener = new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+            }
+        };
+
+        mAdapter = createPagerAdapter();
+    }
+
+    @NonNull
+    protected WheelAdapter createPagerAdapter() {
+        List<String> tabs = Arrays.asList(PAGE_ALBUMS, PAGE_GENRES, PAGE_ARTISTS);
+        return new WheelAdapter(getChildFragmentManager(), tabs, tabs.get(0));
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_main_pager, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        mViewPager.setAdapter(mAdapter);
+        mViewPager.getAdapter().notifyDataSetChanged();
+
+        mTabStrip.setVisibility(View.VISIBLE);
+        mTabStrip.setTextColor(getResources().getColor(R.color.white));
+        mTabStrip.setTabIndicatorColor(getResources().getColor(R.color.white));
+        mViewPager.setCurrentItem(mAdapter.getFirstPosition());
+        mViewPager.addOnPageChangeListener(mPageChangedListener);
+       // mViewPager.setPageTransformer(false, new ());
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mViewPager = null;
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mAdapter = null;
+        mPageChangedListener = null;
+    }
+}
+---------------------------------------------------------------------------------------------------
+NavigationManager
+package com.android.msahakyan.fma.fragment;
+
+import android.support.v4.app.Fragment;
+
+import com.android.msahakyan.fma.adapter.delegates.AlbumAdapterDelegate;
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Genre;
+import com.android.msahakyan.fma.model.SearchResultItem;
+import com.android.msahakyan.fma.util.Item;
+
+import java.util.List;
+
+/**
+ * Created by msahakyan on 01/07/16.
+ */
+
+public interface NavigationManager {
+
+    void showGenresFragment();
+
+    void showAlbumsFragment();
+
+    void showArtistsFragment();
+
+    void showArtistDetailFragment(Artist artist);
+
+    void showTracksFragmentByGenre(Genre genre);
+
+    void showArtistDetailFragment(String artistUrl);
+
+    void showAlbumDetailFragment(Album album, AlbumAdapterDelegate.AlbumViewHolder holder);
+
+    void showTrackPlayFragment(List<Item> tracks, int position);
+
+    void showMainPagerFragment();
+
+    Fragment getCurrentFragment();
+
+    void onBackPress();
+
+    void showSearchSuggestionsFragment();
+
+    void showSearchResultsFragment(List<SearchResultItem> response, String mQuery);
+}
+-----------------------------------------------------------------------------------------------
+SearchResultFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.model.SearchResultItem;
+import com.android.msahakyan.fma.util.Item;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * Use the {@link SearchResultsFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class SearchResultsFragment extends BaseLceFragment implements ItemClickListener<Item> {
+
+    private static final String KEY_ITEM_LIST = "KEY_ITEM_LIST";
+    private static final String KEY_QUERY = "KEY_QUERY";
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+
+    private ItemListAdapter adapter;
+    private List<Item> mSearchResults;
+    private InterstitialAd mInterstitialAd;
+    List<Item> fakeItems;
+
+    public SearchResultsFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment SearchResultsFragment.
+     */
+    public static SearchResultsFragment newInstance(ArrayList<SearchResultItem> response, String query) {
+        SearchResultsFragment fragment = new SearchResultsFragment();
+        Bundle args = new Bundle();
+        args.putParcelableArrayList(KEY_ITEM_LIST, response);
+        args.putString(KEY_QUERY, query);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed()
+            {
+                navigationManager.showTrackPlayFragment(fakeItems, 0);
+                mInterstitialAd.loadAd(new AdRequest.Builder().build());
+            }
+        });
+
+
+        mSearchResults = getArguments().getParcelableArrayList(KEY_ITEM_LIST);
+        String mQuery = getArguments().getString(KEY_QUERY);
+        createAdapter();
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 1);
+        mListView.setLayoutManager(layoutManager);
+        mListView.setAdapter(adapter);
+    }
+
+    private void createAdapter() {
+        adapter = new ItemListAdapter(activity, mSearchResults, this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_search_results, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(mListView);
+        setLayoutManager();
+        if (getView() != null && adapter != null) {
+            if (adapter.getItems().isEmpty()) {
+                showProgressView();
+            } else {
+                hideProgressView();
+                Timber.d("Items already loaded -- skip");
+            }
+        }
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+        fakeItems = Collections.singletonList(item);
+
+        if (mInterstitialAd.isLoaded()) {
+            mInterstitialAd.show();
+        } else {
+
+            navigationManager.showTrackPlayFragment(fakeItems, 0);
+        }
+    }
+}
+------------------------------------------------------------------------------------------
+SearchSuggestionsFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.SearchHistoryAdapter;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.SearchResultItem;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.util.SearchHistoryStack;
+import com.android.msahakyan.fma.view.DividerItemDecoration;
+import com.android.msahakyan.fma.view.SearchView;
+
+import java.net.HttpURLConnection;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * Created by msahakyan on 05/10/16.
+ */
+
+public class SearchSuggestionsFragment extends BaseNetworkRequestFragment<List<SearchResultItem>> {
+
+    private static final int SEARCH_QUERY_MAX_LENTH = 100;
+    private static final String KEY_QUERY = "SEARCH_QUERY";
+
+    @Inject
+    FmaApiService fmaApiService;
+
+    @Bind(R.id.list_view)
+    RecyclerView recyclerView;
+
+    private SearchView searchView;
+    private SearchHistoryStack historyStack;
+
+    private String searchQuery;
+
+    public static SearchSuggestionsFragment newInstance() {
+        return new SearchSuggestionsFragment();
+    }
+
+    public static SearchSuggestionsFragment newInstance(String query) {
+        SearchSuggestionsFragment fragment = new SearchSuggestionsFragment();
+        Bundle args = new Bundle();
+        args.putString(KEY_QUERY, query);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_search_suggestios, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        setContentView(recyclerView);
+        hideProgressView();
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        recyclerView.addItemDecoration(new DividerItemDecoration(getActivity()));
+
+        initSearchHistoryAdapter();
+        activity.setSearchFragment(this);
+    }
+
+
+    private void initSearchHistoryAdapter() {
+        historyStack = new SearchHistoryStack(getActivity());
+        List<String> searchHistoryTerms = historyStack.getSearchTermsFromHistory();
+        SearchHistoryAdapter searchHistoryAdapter = new SearchHistoryAdapter(getActivity(), searchHistoryTerms);
+
+        searchHistoryAdapter.setOnRemoveBtnClickListener(searchHistoryItem -> {
+            searchView.clearFocus();
+            historyStack.removeFromHistory(searchHistoryItem);
+        });
+
+        searchHistoryAdapter.setOnItemClickListener(this::requestSearch);
+        recyclerView.setAdapter(searchHistoryAdapter);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        MenuItem searchItem = menu.findItem(R.id.item_search);
+        searchItem.setVisible(true);
+        searchView = (SearchView) MenuItemCompat.getActionView(searchItem);
+        searchView.setIconified(false);
+        searchView.setOnSearchClickListener(null);
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String s) {
+                String input = s.trim();
+                if (TextUtils.isEmpty(input)) {
+                    Timber.d("Empty search searchQuery -> skip");
+                } else {
+                    requestSearch(input);
+                }
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String s) {
+                searchView.showCloseButton(!TextUtils.isEmpty(s));
+                String input = truncateInput(s, SEARCH_QUERY_MAX_LENTH);
+                if (s.length() > input.length()) {
+                    searchView.setQuery(input, false);
+                }
+                return true;
+            }
+        });
+        if (!TextUtils.isEmpty(searchQuery)) {
+            searchView.setQuery(searchQuery, false);
+        }
+    }
+
+    private void requestSearch(String query) {
+        if (isRequestActive()) {
+            if (query.equals(this.searchQuery)) {
+                Timber.d("A search request is already in progress");
+                return;
+            } else {
+                getNetworkRequest().cancel();
+            }
+        }
+        showProgressView();
+        this.searchQuery = query;
+        refresh();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        if (searchView != null) {
+            searchView.clearFocus();
+        }
+        setNetworkRequest(fmaApiService.loadSearchResultsByQuery(getNetworkListener(), searchQuery));
+    }
+
+    @Override
+    protected void onSuccess(List<SearchResultItem> response, int statusCode) {
+        super.onSuccess(response, statusCode);
+        hideProgressView();
+        searchView.setIconified(true);
+        if (response != null && statusCode == HttpURLConnection.HTTP_OK) {
+            if (searchQuery != null) {
+                historyStack.addToHistory(searchQuery);
+                navigationManager.showSearchResultsFragment(response, searchQuery);
+            }
+        }
+    }
+
+    @Override
+    public void onBeforeDestroyView() {
+        super.onBeforeDestroyView();
+        activity.setSearchFragment(null);
+        if (searchView != null) {
+            searchView.setQuery(null, false);
+            searchView.setIconified(true);
+        }
+    }
+
+    private String truncateInput(String src, int limit) {
+        if (!TextUtils.isEmpty(src) && src.length() > limit) {
+            return src.substring(0, limit);
+        }
+        return src;
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+}
+
+---------------------------------------------------------------------------------------------------------
+TrackDetailFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.Manifest;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.media.AudioManager;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
+import android.view.LayoutInflater;
+import android.view.MotionEvent;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.SeekBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.activity.SplashScreenActivity;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Track;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.service.MusicDownloaderService;
+import com.android.msahakyan.fma.service.MusicService;
+import com.android.msahakyan.fma.util.AppUtils;
+import com.android.msahakyan.fma.util.BitmapUtils;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.util.ItemLoadedListener;
+import com.android.msahakyan.fma.util.LoadNeighborTrackListener;
+import com.android.msahakyan.fma.util.MediaPlayerPreparedListener;
+import com.android.msahakyan.fma.util.MediaPlayerStateChangeListener;
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageLoader;
+import com.github.rahatarmanahmed.cpv.CircularProgressView;
+import com.google.android.gms.ads.AdListener;
+import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
+
+import java.lang.ref.WeakReference;
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import butterknife.OnClick;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link TrackDetailFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class TrackDetailFragment extends BaseItemDetailFragment<Track> implements View.OnClickListener, View.OnTouchListener,
+    ItemLoadedListener, MediaPlayerPreparedListener, MediaPlayerStateChangeListener, LoadNeighborTrackListener {
+
+    private static final String KEY_ITEM_LIST = "KEY_ITEM_LIST";
+    private static final String KEY_ITEM_POSITION = "KEY_ITEM_POSITION";
+    private static final int MY_PERMISSIONS_REQUEST=2;
+
+
+    @Inject
+    FmaApiService fmaApiService;
+    @Inject
+    ImageLoader imageLoader;
+
+    @Bind(R.id.track_image)
+    ImageView mTrackImageView;
+    @Bind(R.id.track_detail_image_container)
+    ImageView mTrackImageContainer;
+    @Bind(R.id.track_title)
+    TextView mTitleView;
+
+    @Bind(R.id.button_play_pause)
+    ImageView mButtonPlayPause;
+    @Bind(R.id.button_previous)
+    ImageView mButtonPrevious;
+    @Bind(R.id.button_next)
+    ImageView mButtonNext;
+    @Bind(R.id.seek_bar)
+    SeekBar mProgress;
+    @Bind(R.id.progress_passed)
+    TextView mProgressPassed;
+    @Bind(R.id.song_time)
+    TextView mSongTime;
+
+    @Bind(R.id.progress_detail_view)
+    CircularProgressView mProgressView;
+    @Bind(R.id.license)
+    ImageView mLicense;
+
+    private MusicService mMusicService;
+    private final Handler handler;
+    private Intent mPlayIntent;
+    private boolean mIsBound = false;
+    private int mDurationInMillis;
+    private boolean mMute;
+    private boolean mPaused;
+    private boolean mPrepared;
+    private List<Track> mTracks;
+    private int mListPosition;
+
+    private boolean mPlaybackPaused;
+    private NetworkRequestListener<Item> mNetworkRequestListener;
+    private InterstitialAd mInterstitialAd;
+
+    public TrackDetailFragment() {
+        handler = new Handler();
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @param tracks The list of tracks in the current {@link com.android.msahakyan.fma.model.Album}
+     * @return A new instance of fragment AlbumDetailFragment.
+     */
+    public static TrackDetailFragment newInstance(ArrayList<Item> tracks, int position) {
+        TrackDetailFragment fragment = new TrackDetailFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(KEY_ITEM_PARCEL, tracks.get(position));
+        args.putParcelableArrayList(KEY_ITEM_LIST, tracks);
+        args.putInt(KEY_ITEM_POSITION, position);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Bundle args = getArguments();
+
+
+        mTracks = args.getParcelableArrayList(KEY_ITEM_LIST);
+        mListPosition = args.getInt(KEY_ITEM_POSITION);
+        mInterstitialAd = new InterstitialAd(getActivity());
+        mInterstitialAd.setAdUnitId("ca-app-pub-3940256099942544/1033173712");
+        mInterstitialAd.loadAd(new AdRequest.Builder().build());
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdLoaded() {
+                // Code to be executed when an ad finishes loading.
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                // Code to be executed when an ad request fails.
+            }
+
+            @Override
+            public void onAdOpened() {
+                // Code to be executed when the ad is displayed.
+            }
+
+            @Override
+            public void onAdLeftApplication() {
+                // Code to be executed when the user has left the app.
+            }
+
+            @Override
+            public void onAdClosed() {
+                mInterstitialAd.loadAd(new AdRequest.Builder().build());
+
+            }
+        });
+
+        mNetworkRequestListener = new NetworkRequestListener<Item>() {
+            @Override
+            public void onSuccess(@Nullable Item response, int statusCode) {
+                if (response != null && statusCode == HttpURLConnection.HTTP_OK) {
+                    Timber.d("Received response for track details: " + response);
+                    setItem((Track) response);
+                    showBasicView();
+                    onItemLoaded(item);
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                Timber.w(errorMessage);
+                showErrorView();
+            }
+        };
+    }
+
+    @Override
+    protected void showBasicView() {
+
+        try {
+            mTitleView.setText(item.getTitle());
+            imageLoader.get(item.getImage(), new ImageLoader.ImageListener() {
+                @Override
+                public void onResponse(ImageLoader.ImageContainer response, boolean isImmediate) {
+                    if (response != null) {
+                        Bitmap btm = response.getBitmap();
+                        if (btm != null && mTrackImageView != null) {
+                            mTrackImageView.setImageBitmap(btm);
+                            item.setImageBitmap(btm);
+                            BitmapWorkerTask task = new BitmapWorkerTask(mTrackImageContainer);
+                            task.execute(btm);
+                        }
+                    }
+                }
+
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    Timber.w("Can't load image bitmap url: " + item.getImage());
+                }
+            });
+        }catch (Exception e){
+
+        }
+        showContentView();
+
+    }
+
+    private boolean hasPrevious() {
+        return mListPosition > 0;
+    }
+
+    private boolean hasNext() {
+        return mListPosition < mTracks.size() - 1;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (mPaused) {
+            mPaused = false;
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        activity.unbindService(mServiceConnection);
+        mMusicService = null;
+        super.onDestroy();
+    }
+
+    private ServiceConnection mServiceConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            MusicService.MusicBinder binder = (MusicService.MusicBinder) service;
+            mMusicService = binder.getService();
+            mIsBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            mIsBound = false;
+        }
+    };
+
+    public int getCurrentPosition() {
+        if (mMusicService != null && mIsBound)
+            return mMusicService.getPosition();
+        else return 0;
+    }
+
+    public int getDuration() {
+        if (mMusicService != null && mIsBound && mPrepared)
+            return mMusicService.getDuration();
+        else return 0;
+    }
+
+    public boolean isPlaying() {
+        return mMusicService != null && mIsBound && mMusicService.isPlaying();
+    }
+
+    public void pause() {
+        mPlaybackPaused = true;
+        mMusicService.pausePlayer();
+    }
+
+    public void seekTo(int position) {
+        mMusicService.seek(position);
+    }
+
+    public void start() {
+        mMusicService.startPlayer();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (mPlayIntent == null) {
+            mPlayIntent = new Intent(activity, MusicService.class);
+            activity.bindService(mPlayIntent, mServiceConnection, Context.BIND_AUTO_CREATE);
+        }
+    }
+
+    @Override
+    public void onActivityCreated(@android.support.annotation.Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        ActionBar actionBar = activity.getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.hide();
+        }
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_track_detail, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        showContentView();
+        init();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+        fmaApiService.getTrackById(mNetworkRequestListener, item.getId());
+    }
+
+    private void init() {
+        mButtonPlayPause.setOnClickListener(this);
+        mProgress.setMax(99); // It means 100% .0-99
+        mProgress.setPadding(0, 0, 0, 0);
+        mProgress.setProgressDrawable(ContextCompat.getDrawable(getContext(), R.drawable.progress_bar));
+        mProgress.setOnTouchListener(this);
+        mSongTime.setText(item.getDuration());
+        updatePlayerPreviousNextButtonsUI();
+    }
+
+    private void updatePlayerPreviousNextButtonsUI() {
+        mButtonPrevious.setEnabled(hasPrevious());
+        mButtonNext.setEnabled(hasNext());
+    }
+
+    /**
+     * Updates the SeekBar primary progress by current song playing position
+     */
+    private void updateProgress() {
+        if (!mPrepared) {
+            return;
+        }
+        if (mProgress != null) {
+            int durationInMillis = getDuration();
+            int timePercentage = durationInMillis != 0 ? getCurrentPosition() * 100 / durationInMillis : 0;
+            mProgress.setProgress(timePercentage); // This gives a percentage of playing song length"
+            mProgressPassed.setText(AppUtils.durationConverter(timePercentage * durationInMillis / 100000));
+        }
+
+        Runnable progressUpdater = this::updateProgress;
+        handler.postDelayed(progressUpdater, 1000);
+    }
+
+    @OnClick(R.id.button_play_pause)
+    public void onClick(View v) {
+        if (!mPrepared) {
+            return;
+        }
+        if (isPlaying()) {
+            pause();
+            mButtonPlayPause.setImageResource(R.drawable.ic_av_play);
+        } else {
+            start();
+            mButtonPlayPause.setImageResource(R.drawable.ic_av_pause);
+        }
+    }
+
+    @OnClick(R.id.button_download)
+    public void onDownloadButtonClick() {
+
+
+
+        if (ContextCompat.checkSelfPermission(activity,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            // Should we show an explanation?
+            if (ActivityCompat.shouldShowRequestPermissionRationale(activity,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        MY_PERMISSIONS_REQUEST);
+
+            } else {
+
+                // No explanation needed, we can request the permission.
+
+                ActivityCompat.requestPermissions(activity,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        MY_PERMISSIONS_REQUEST);
+
+                // MY_PERMISSIONS_REQUEST_READ_CONTACTS is an
+                // app-defined int constant. The callback method gets the
+                // result of the request.
+            }
+        } else {
+
+
+                Intent intent = new Intent(activity, MusicDownloaderService.class);
+                intent.putExtra(MusicDownloaderService.KEY_TRACK_URL, item.getFileUrl());
+                intent.putExtra(MusicDownloaderService.KEY_TRACK_NAME, item.getTitle());
+                activity.startService(intent);
+
+
+            if (mInterstitialAd.isLoaded()) {
+                mInterstitialAd.show();
+            }
+
+        }
+    }
+
+    @OnClick(R.id.license)
+    public void onLicenseViewClick() {
+        if (item.getLicenseUrl() == null) {
+            String trackTitle = item.getTitle();
+            Timber.e(getString(R.string.empty_license_url, trackTitle));
+            Toast.makeText(activity, getString(R.string.empty_license_url, trackTitle), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse((item.getLicenseUrl())));
+        startActivity(browserIntent);
+    }
+
+    @OnClick(R.id.button_previous)
+    public void onPreviousButtonClick() {
+        if (!hasPrevious()) {
+            return;
+        }
+        pause();
+        if (mTracks != null) {
+            mListPosition--;
+            setItem(mTracks.get(mListPosition));
+        }
+
+        updatePlayerPreviousNextButtonsUI();
+        mProgressView.startAnimation();
+        mProgressView.setVisibility(View.VISIBLE);
+        refresh();
+    }
+
+    @OnClick(R.id.button_next)
+    public void onNextButtonClick() {
+        if (!hasNext()) {
+            Toast.makeText(activity, getString(R.string.no_more_tracks_to_load, item.getAlbumTitle()), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        if (mTracks != null) {
+            mListPosition++;
+            setItem(mTracks.get(mListPosition));
+        }
+
+        updatePlayerPreviousNextButtonsUI();
+        mProgressView.startAnimation();
+        mProgressView.setVisibility(View.VISIBLE);
+        refresh();
+    }
+
+    @Override
+    public boolean onTouch(View v, MotionEvent event) {
+        if (v.getId() == R.id.seek_bar) {
+            // SeekBar onTouch event handler. Seeks MediaPlayer to seekBar primary progress position
+            if (isPlaying()) {
+                SeekBar seekBar = (SeekBar) v;
+                int playPositionInMillis = (mDurationInMillis / 100) * seekBar.getProgress();
+                seekTo(playPositionInMillis);
+            }
+        }
+        return false;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        mPaused = true;
+    }
+
+
+
+    private void mute(boolean mute) {
+        AudioManager audioManager = (AudioManager) activity.getSystemService(Context.AUDIO_SERVICE);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (!audioManager.isStreamMute(AudioManager.STREAM_MUSIC)) {
+                audioManager.adjustStreamVolume(AudioManager.STREAM_MUSIC, mute ? AudioManager.ADJUST_MUTE : AudioManager.ADJUST_UNMUTE, 0);
+            }
+        } else {
+            audioManager.setStreamMute(AudioManager.STREAM_MUSIC, mute);
+        }
+    }
+
+    @Override
+    public void onItemLoaded(Item item) {
+        Track track = (Track) item;
+        track.setImageBitmap(this.item.getImageBitmap());
+        mMusicService.setTrack(track);
+        mMusicService.playTrack();
+        mSongTime.setText(track.getDuration());
+        mProgressView.startAnimation();
+        mProgressView.setVisibility(View.VISIBLE);
+        mLicense.bringToFront();
+
+        setListeners();
+        mPlaybackPaused = !mPlaybackPaused;
+    }
+
+    private void setListeners() {
+        mMusicService.setPreparedListener(this);
+        mMusicService.setStateChangeListener(this);
+        mMusicService.setLoadNeighborTrackListener(this);
+    }
+
+    @Override
+    public void onPlayerPrepared() {
+        mProgressView.stopAnimation();
+        mProgressView.setVisibility(View.GONE);
+
+        mDurationInMillis = getDuration(); // gets the track length in milliseconds
+        mPrepared = true;
+        updatePlayerControlsUI(true);
+        updateProgress();
+    }
+
+    @Override
+    public void onPlayerStateChanged(boolean isPlaying) {
+        updatePlayerControlsUI(isPlaying);
+        updateProgress();
+    }
+
+    private void updatePlayerControlsUI(boolean isPlaying) {
+        if (isPlaying) {
+            mButtonPlayPause.setImageResource(R.drawable.ic_av_pause);
+        } else {
+            mButtonPlayPause.setImageResource(R.drawable.ic_av_play);
+        }
+    }
+
+    @Override
+    public void loadNeighborTrack(@AdjacentMode int mode) {
+        switch (mode) {
+            case NEXT:
+                onNextButtonClick();
+                break;
+            case PREVIOUS:
+                onPreviousButtonClick();
+                break;
+        }
+    }
+
+    @Override
+    public void onBeforeDestroyView() {
+        super.onBeforeDestroyView();
+        ActionBar actionBar = activity.getSupportActionBar();
+        if (actionBar != null) {
+            actionBar.show();
+        }
+        mute(false); // un-mute audio stream
+    }
+
+    static class BitmapWorkerTask extends AsyncTask<Bitmap, Void, Bitmap> {
+
+        private final WeakReference<ImageView> imageViewReference;
+        private Bitmap source;
+
+        BitmapWorkerTask(ImageView imageView) {
+            // Use a WeakReference to ensure the ImageView can be garbage collected
+            imageViewReference = new WeakReference<>(imageView);
+        }
+
+        // Blur image in background.
+        @Override
+        protected Bitmap doInBackground(Bitmap... params) {
+            source = params[0];
+            return BitmapUtils.fastBlur(source, 0.85f, 100);
+        }
+
+        // Once complete, see if ImageView is still around and set bitmap.
+        @Override
+        protected void onPostExecute(Bitmap bitmap) {
+            if (bitmap != null) {
+                final ImageView imageView = imageViewReference.get();
+                if (imageView != null) {
+                    imageView.setImageBitmap(bitmap);
+                }
+            }
+        }
+    }
+}
+-------------------------------------------------------------------------------------------------------
+TrackFragment
+package com.android.msahakyan.fma.fragment;
+
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+import com.android.msahakyan.fma.adapter.ItemClickListener;
+import com.android.msahakyan.fma.adapter.ItemListAdapter;
+import com.android.msahakyan.fma.application.FmaApplication;
+import com.android.msahakyan.fma.model.Genre;
+import com.android.msahakyan.fma.model.Page;
+import com.android.msahakyan.fma.network.FmaApiService;
+import com.android.msahakyan.fma.network.NetworkRequestListener;
+import com.android.msahakyan.fma.util.AppUtils;
+import com.android.msahakyan.fma.util.InfiniteScrollListener;
+import com.android.msahakyan.fma.util.Item;
+import com.android.msahakyan.fma.util.ItemDecorator;
+import com.android.msahakyan.fma.view.MoreDataLoaderView;
+
+import java.net.HttpURLConnection;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import butterknife.Bind;
+import timber.log.Timber;
+
+/**
+ * A simple {@link Fragment} subclass.
+ * Use the {@link TracksFragment#newInstance} factory method to
+ * create an instance of this fragment.
+ */
+public class TracksFragment extends BaseNetworkRequestFragment<Page<Item>> implements
+    MoreDataLoaderView.LoadMoreDataCallback, ItemClickListener<Item> {
+
+    public static final String QUALIFIER = "TRACK_WITH_ICON";
+
+    private static final int DEFAULT_THRESHOLD = 1;
+    private static final String KEY_SELECTED_GENRE = "KEY_SELECTED_GENRE";
+
+    @Inject
+    FmaApiService fmaApiService;
+
+    @Bind(R.id.list_view)
+    RecyclerView mListView;
+    @Bind(R.id.loading_footer)
+    MoreDataLoaderView mLoadingFooter;
+
+    private ItemListAdapter adapter;
+    private InfiniteScrollListener mInfiniteScrollListener;
+    private Genre mSelectedGenre;
+    private int mPage = 1;
+
+    public TracksFragment() {
+        // Required empty public constructor
+    }
+
+    /**
+     * Use this factory method to create a new instance of
+     * this fragment using the provided parameters.
+     *
+     * @return A new instance of fragment TracksFragment.
+     */
+    public static TracksFragment newInstance(Genre genre) {
+        TracksFragment fragment = new TracksFragment();
+        Bundle args = new Bundle();
+        args.putParcelable(KEY_SELECTED_GENRE, genre);
+        fragment.setArguments(args);
+
+        return fragment;
+    }
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        mSelectedGenre = getArguments().getParcelable(KEY_SELECTED_GENRE);
+        createAdapter();
+        mInfiniteScrollListener = new InfiniteScrollListener(DEFAULT_THRESHOLD) {
+            @Override
+            protected void onLoadMore() {
+                mLoadingFooter.setLoadingShown(isResumed() && adapter.getItemCount() > 0);
+                loadMoreData();
+            }
+        };
+        setHasOptionsMenu(true);
+    }
+
+    private void setLayoutManager() {
+        GridLayoutManager layoutManager = new GridLayoutManager(activity, 2);
+        mListView.setLayoutManager(layoutManager);
+        mInfiniteScrollListener.setLayoutManager(layoutManager);
+
+        mListView.addOnScrollListener(mInfiniteScrollListener);
+        mListView.setAdapter(adapter);
+        mListView.addItemDecoration(new ItemDecorator(3, 3));
+    }
+
+    private void createAdapter() {
+        mPage = 1;
+        adapter = new ItemListAdapter(activity, new ArrayList<>(), this);
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
+        return inflater.inflate(R.layout.fragment_tracks, container, false);
+    }
+
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setContentView(mListView);
+        setLayoutManager();
+        if (getView() != null && adapter != null) {
+            if (adapter.getItems().isEmpty()) {
+                showProgressView();
+                refresh();
+            } else {
+                hideProgressView();
+                Timber.d("Items already loaded -- skip");
+            }
+        }
+        mLoadingFooter.setLoadDataCallback(this);
+    }
+
+    @Override
+    protected void onSuccess(Page<Item> response, int statusCode) {
+        super.onSuccess(response, statusCode);
+        hideProgressView();
+
+        if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+            showTracks(response.getItems());
+        } else {
+            Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+            super.onError(statusCode, "Something went wrong!");
+        }
+    }
+
+    private void showTracks(List<Item> items) {
+        AppUtils.setCollectionQualifier(items, QUALIFIER);
+        adapter.addAll(items);
+    }
+
+    @Override
+    protected void onError(int statusCode, String errorMessage) {
+        super.onError(statusCode, errorMessage);
+        hideProgressView();
+        Toast.makeText(activity, "Status code: " + statusCode + " error: " + errorMessage, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void refresh() {
+        super.refresh();
+
+try {
+    setNetworkRequest(fmaApiService.getTracksByGenreId(getNetworkListener(), mSelectedGenre.getId(), mPage));
+
+}catch (Exception e){}
+
+
+    }
+
+    @Override
+    public void loadMoreData() {
+        fmaApiService.getTracksByGenreId(new NetworkRequestListener<Page<Item>>() {
+            @Override
+            public void onSuccess(@Nullable Page<Item> response, int statusCode) {
+                if (statusCode == HttpURLConnection.HTTP_OK && response != null) {
+                    List<Item> items = response.getItems();
+                    AppUtils.setCollectionQualifier(items, QUALIFIER);
+                    TracksFragment.this.onLoadMoreDataSuccess(response.getItems());
+                } else {
+                    Timber.e("Something went wrong! StatusCode: " + statusCode + ", response: " + response);
+                    onError(statusCode, "Something went wrong!");
+                }
+            }
+
+            @Override
+            public void onError(int statusCode, String errorMessage) {
+                TracksFragment.this.onError(statusCode, errorMessage);
+            }
+        }, mSelectedGenre.getId(), ++mPage);
+    }
+
+    private void onLoadMoreDataSuccess(List<Item> result) {
+        mInfiniteScrollListener.setVisibleThreshold(Math.max(DEFAULT_THRESHOLD, result.size() / 2));
+        if (mLoadingFooter != null) {
+            mLoadingFooter.setLoadingShown(false);
+        }
+        adapter.addAll(result);
+    }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        if (activity != null) {
+            activity.showSearchIcon(true);
+        }
+    }
+
+    @Override
+    public void onItemClicked(Item item, RecyclerView.ViewHolder holder) {
+        navigationManager.showTrackPlayFragment(adapter.getItems(), holder.getAdapterPosition());
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        FmaApplication.get(activity).getApplicationComponent().inject(this);
+    }
+}
