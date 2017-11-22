@@ -1,0 +1,2537 @@
+BitmapLruCache
+package com.android.msahakyan.fma.util.cache;
+
+import android.graphics.Bitmap;
+import android.support.v4.util.LruCache;
+
+import com.android.volley.toolbox.ImageLoader.ImageCache;
+
+/**
+ * Created by msahakyan on 23/07/16.
+ */
+
+public class BitmapLruCache extends LruCache<String, Bitmap> implements ImageCache {
+
+    public BitmapLruCache() {
+        super(getDefaultLruCacheSize());
+    }
+
+    private static int getDefaultLruCacheSize() {
+        final int maxMemory = (int) (Runtime.getRuntime().maxMemory() / 1024);
+        return maxMemory / 8;
+    }
+
+    @Override
+    protected int sizeOf(String key, Bitmap value) {
+        return value.getRowBytes() * value.getHeight() / 1024;
+    }
+
+    @Override
+    public Bitmap getBitmap(String url) {
+        return get(url);
+    }
+
+    @Override
+    public void putBitmap(String url, Bitmap bitmap) {
+        put(url, bitmap);
+    }
+
+
+}
+-----------------------------------------------------------------------------------------------------
+ActionConstants
+package com.android.msahakyan.fma.util;
+
+public interface ActionConstants {
+    String ACTION_PLAY = "com.android.msahakyan.fma.play";
+    String ACTION_PAUSE = "com.android.msahakyan.fma.pause";
+    String ACTION_NEXT = "com.android.msahakyan.fma.next";
+    String ACTION_PREVIOUS = "com.android.msahakyan.fma.previous";
+    String ACTION_DELETE = "com.android.msahakyan.fma.delete";
+}
+--------------------------------------------------------------------------------------------------------------------
+AppUtils
+package com.android.msahakyan.fma.util;
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.os.Build;
+import android.text.Html;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import com.android.msahakyan.fma.R;
+
+import java.util.Collection;
+import java.util.Locale;
+import java.util.Map;
+
+/**
+ * Created by msahakyan on 26/07/16.
+ */
+
+public class AppUtils {
+
+    public static boolean isEmpty(Map<?, ?> map) {
+        return map == null || map.isEmpty();
+    }
+
+    public static boolean isEmpty(Collection<?> collection) {
+        return collection == null || collection.isEmpty();
+    }
+
+    public static void showCustomDialog(final Context context, String textContent) {
+        LinearLayout layout = (LinearLayout) LayoutInflater.from(context).inflate(R.layout.custom_dialog_layout, null);
+
+        final ViewGroup content = (ViewGroup) layout.findViewById(R.id.dialog_content);
+        content.setVisibility(View.VISIBLE);
+        content.addView(newText(context, textContent));
+
+        new AlertDialog.Builder(context)
+            .setView(layout)
+            .setNeutralButton("Ok", (dialog, which) -> {
+                dialog.dismiss();
+            })
+            .setCancelable(true)
+            .setInverseBackgroundForced(true)
+            .create()
+            .show();
+    }
+
+    private static View newText(Context context, String text) {
+        TextView view = new TextView(context);
+        view.setText(Html.fromHtml(text));
+        view.setTextAppearance(context, R.style.TextAppearance_AppCompat_Body1);
+
+        return view;
+    }
+
+    public static String durationConverter(long totalSecs) {
+        int minutes = (int) (totalSecs % 3600) / 60;
+        int seconds = (int) totalSecs % 60;
+
+        return String.format(Locale.ENGLISH, "%02d:%02d", minutes, seconds);
+    }
+
+    public static String getCreationDateOnly(String fullDate) {
+        if (fullDate == null) {
+            return null;
+        }
+        int spaceLocation = fullDate.indexOf(" ");
+        return fullDate.substring(0, spaceLocation);
+    }
+
+    public static boolean isJellyBeanOrLater() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN;
+    }
+
+    public static void setCollectionQualifier(Collection<Item> collection, String qualifier) {
+        if (collection == null) {
+            return;
+        }
+        
+        for (Item item : collection) {
+            item.setQualifier(qualifier);
+        }
+    }
+}
+----------------------------------------------------------------------------------------------------------------
+BitmapUtils
+package com.android.msahakyan.fma.util;
+
+import android.graphics.Bitmap;
+import android.util.Log;
+
+/**
+ * Created by msahakyan on 11/09/16.
+ */
+
+public class BitmapUtils {
+
+    /**
+     * Stack Blur v1.0 from
+     * http://www.quasimondo.com/StackBlurForCanvas/StackBlurDemo.html
+     * Java Author: Mario Klingemann <mario at quasimondo.com>
+     * http://incubator.quasimondo.com
+     * <p>
+     * created Feburary 29, 2004
+     * Android port : Yahel Bouaziz <yahel at kayenko.com>
+     * http://www.kayenko.com
+     * ported april 5th, 2012
+     * <p>
+     * This is a compromise between Gaussian Blur and Box blur
+     * It creates much better looking blurs than Box Blur, but is
+     * 7x faster than my Gaussian Blur implementation.
+     * <p>
+     * I called it Stack Blur because this describes best how this
+     * filter works internally: it creates a kind of moving stack
+     * of colors whilst scanning through the image. Thereby it
+     * just has to add one new block of color to the right side
+     * of the stack and remove the leftmost color. The remaining
+     * colors on the topmost layer of the stack are either added on
+     * or reduced by one, depending on if they are on the right or
+     * on the left side of the stack.
+     * <p>
+     * If you are using this algorithm in your code please add
+     * the following line:
+     * Stack Blur Algorithm by Mario Klingemann <mario@quasimondo.com>
+     */
+
+    public static Bitmap fastBlur(Bitmap sentBitmap, float scale, int radius) {
+
+        int width = Math.round(sentBitmap.getWidth() * scale);
+        int height = Math.round(sentBitmap.getHeight() * scale);
+        sentBitmap = Bitmap.createScaledBitmap(sentBitmap, width, height, false);
+
+        Bitmap bitmap = sentBitmap.copy(sentBitmap.getConfig(), true);
+
+        if (radius < 1) {
+            return (null);
+        }
+
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+
+        int[] pix = new int[w * h];
+        Log.e("pix", w + " " + h + " " + pix.length);
+        bitmap.getPixels(pix, 0, w, 0, 0, w, h);
+
+        int wm = w - 1;
+        int hm = h - 1;
+        int wh = w * h;
+        int div = radius + radius + 1;
+
+        int r[] = new int[wh];
+        int g[] = new int[wh];
+        int b[] = new int[wh];
+        int rsum, gsum, bsum, x, y, i, p, yp, yi, yw;
+        int vmin[] = new int[Math.max(w, h)];
+
+        int divsum = (div + 1) >> 1;
+        divsum *= divsum;
+        int dv[] = new int[256 * divsum];
+        for (i = 0; i < 256 * divsum; i++) {
+            dv[i] = (i / divsum);
+        }
+
+        yw = yi = 0;
+
+        int[][] stack = new int[div][3];
+        int stackpointer;
+        int stackstart;
+        int[] sir;
+        int rbs;
+        int r1 = radius + 1;
+        int routsum, goutsum, boutsum;
+        int rinsum, ginsum, binsum;
+
+        for (y = 0; y < h; y++) {
+            rinsum = ginsum = binsum = routsum = goutsum = boutsum = rsum = gsum = bsum = 0;
+            for (i = -radius; i <= radius; i++) {
+                p = pix[yi + Math.min(wm, Math.max(i, 0))];
+                sir = stack[i + radius];
+                sir[0] = (p & 0xff0000) >> 16;
+                sir[1] = (p & 0x00ff00) >> 8;
+                sir[2] = (p & 0x0000ff);
+                rbs = r1 - Math.abs(i);
+                rsum += sir[0] * rbs;
+                gsum += sir[1] * rbs;
+                bsum += sir[2] * rbs;
+                if (i > 0) {
+                    rinsum += sir[0];
+                    ginsum += sir[1];
+                    binsum += sir[2];
+                } else {
+                    routsum += sir[0];
+                    goutsum += sir[1];
+                    boutsum += sir[2];
+                }
+            }
+            stackpointer = radius;
+
+            for (x = 0; x < w; x++) {
+
+                r[yi] = dv[rsum];
+                g[yi] = dv[gsum];
+                b[yi] = dv[bsum];
+
+                rsum -= routsum;
+                gsum -= goutsum;
+                bsum -= boutsum;
+
+                stackstart = stackpointer - radius + div;
+                sir = stack[stackstart % div];
+
+                routsum -= sir[0];
+                goutsum -= sir[1];
+                boutsum -= sir[2];
+
+                if (y == 0) {
+                    vmin[x] = Math.min(x + radius + 1, wm);
+                }
+                p = pix[yw + vmin[x]];
+
+                sir[0] = (p & 0xff0000) >> 16;
+                sir[1] = (p & 0x00ff00) >> 8;
+                sir[2] = (p & 0x0000ff);
+
+                rinsum += sir[0];
+                ginsum += sir[1];
+                binsum += sir[2];
+
+                rsum += rinsum;
+                gsum += ginsum;
+                bsum += binsum;
+
+                stackpointer = (stackpointer + 1) % div;
+                sir = stack[(stackpointer) % div];
+
+                routsum += sir[0];
+                goutsum += sir[1];
+                boutsum += sir[2];
+
+                rinsum -= sir[0];
+                ginsum -= sir[1];
+                binsum -= sir[2];
+
+                yi++;
+            }
+            yw += w;
+        }
+        for (x = 0; x < w; x++) {
+            rinsum = ginsum = binsum = routsum = goutsum = boutsum = rsum = gsum = bsum = 0;
+            yp = -radius * w;
+            for (i = -radius; i <= radius; i++) {
+                yi = Math.max(0, yp) + x;
+
+                sir = stack[i + radius];
+
+                sir[0] = r[yi];
+                sir[1] = g[yi];
+                sir[2] = b[yi];
+
+                rbs = r1 - Math.abs(i);
+
+                rsum += r[yi] * rbs;
+                gsum += g[yi] * rbs;
+                bsum += b[yi] * rbs;
+
+                if (i > 0) {
+                    rinsum += sir[0];
+                    ginsum += sir[1];
+                    binsum += sir[2];
+                } else {
+                    routsum += sir[0];
+                    goutsum += sir[1];
+                    boutsum += sir[2];
+                }
+
+                if (i < hm) {
+                    yp += w;
+                }
+            }
+            yi = x;
+            stackpointer = radius;
+            for (y = 0; y < h; y++) {
+                // Preserve alpha channel: ( 0xff000000 & pix[yi] )
+                pix[yi] = (0xff000000 & pix[yi]) | (dv[rsum] << 16) | (dv[gsum] << 8) | dv[bsum];
+
+                rsum -= routsum;
+                gsum -= goutsum;
+                bsum -= boutsum;
+
+                stackstart = stackpointer - radius + div;
+                sir = stack[stackstart % div];
+
+                routsum -= sir[0];
+                goutsum -= sir[1];
+                boutsum -= sir[2];
+
+                if (x == 0) {
+                    vmin[y] = Math.min(y + r1, hm) * w;
+                }
+                p = x + vmin[y];
+
+                sir[0] = r[p];
+                sir[1] = g[p];
+                sir[2] = b[p];
+
+                rinsum += sir[0];
+                ginsum += sir[1];
+                binsum += sir[2];
+
+                rsum += rinsum;
+                gsum += ginsum;
+                bsum += binsum;
+
+                stackpointer = (stackpointer + 1) % div;
+                sir = stack[stackpointer];
+
+                routsum += sir[0];
+                goutsum += sir[1];
+                boutsum += sir[2];
+
+                rinsum -= sir[0];
+                ginsum -= sir[1];
+                binsum -= sir[2];
+
+                yi += w;
+            }
+        }
+
+        Log.e("pix", w + " " + h + " " + pix.length);
+        bitmap.setPixels(pix, 0, w, 0, 0, w, h);
+
+        return (bitmap);
+    }
+}
+---------------------------------------------------------------------------------------------------
+ConnectivityUtil
+package com.android.msahakyan.fma.util;
+
+/**
+ * Created by msahakyan on 03/08/16.
+ */
+
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.R;
+
+public class ConnectivityUtil {
+
+    public static boolean isConnectedToNetwork(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+    public static void notifyNoConnection(Context context) {
+        Toast.makeText(context, R.string.no_connection, Toast.LENGTH_SHORT).show();
+    }
+
+    public static boolean isConnectedToWiFi(Context context) {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo wifiConnection = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
+        return wifiConnection != null && wifiConnection.isConnected();
+    }
+
+    public static AlertDialog showConnectionDialog(final Context context) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setTitle(R.string.dialog_connection_title)
+            .setMessage(R.string.dialog_connection_message)
+            .setCancelable(true)
+            .setNegativeButton(R.string.dialog_connection_button_negative, (dialog, which) -> {
+                /* do nothing*/
+            })
+            .setPositiveButton(R.string.dialog_connection_button_positive, (dialog, which) -> {
+                context.startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS));
+            });
+        return builder.create();
+    }
+
+}
+---------------------------------------------------------------------------------------------------------------------------
+Constants
+package com.android.msahakyan.fma.util;
+
+/**
+ * Created by msahakyan on 26/07/16.
+ */
+
+public interface Constants {
+    String FMA_API_KEY = "K44ZOSWTCXACSKA8";
+}
+---------------------------------------------------------------------------------------------
+InfiniteScrollListener
+package com.android.msahakyan.fma.util;
+
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
+
+import timber.log.Timber;
+
+/**
+ * Created by msahakyan on 17/08/16.
+ */
+
+public abstract class InfiniteScrollListener extends RecyclerView.OnScrollListener {
+
+    private VisibleItemFinder mItemFinder;
+
+    private boolean mEnabled;
+    private int mPreviousTotal = 0;
+    private int mVisibleThreshold;
+
+    public InfiniteScrollListener(int visibleThreshold) {
+        mVisibleThreshold = visibleThreshold;
+    }
+
+    @Override
+    public final void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+        if (mItemFinder == null) {
+            Timber.d("Visible item finder isn't set");
+            return;
+        }
+        onScrolled(recyclerView, mItemFinder, dx, dy);
+    }
+
+    private void onScrolled(RecyclerView recyclerView, VisibleItemFinder itemFinder, int dx, int dy) {
+
+        int visibleItemCount = recyclerView.getChildCount();
+        int totalItemCount = recyclerView.getAdapter().getItemCount();
+        int firstVisibleItem = itemFinder.getFirstVisibleItem();
+
+        if (!mEnabled) {
+            if (totalItemCount > mPreviousTotal) {
+                mEnabled = true;
+                mPreviousTotal = totalItemCount;
+            }
+        }
+        if (mEnabled && (totalItemCount - visibleItemCount <= firstVisibleItem + mVisibleThreshold)) {
+            onLoadMore();
+            mEnabled = false;
+        }
+    }
+
+    public void setLayoutManager(RecyclerView.LayoutManager layoutManager) {
+        if (layoutManager instanceof LinearLayoutManager) {
+            mItemFinder = new LinearVisibleItemFinder((LinearLayoutManager) layoutManager);
+        }
+    }
+
+    public void setVisibleThreshold(int visibleThreshold) {
+        mVisibleThreshold = visibleThreshold;
+    }
+
+    protected abstract void onLoadMore();
+
+
+    public void reset() {
+        mPreviousTotal = 0;
+    }
+
+    public void setEnabled(boolean enabled) {
+        mEnabled = enabled;
+    }
+
+    private static class LinearVisibleItemFinder implements VisibleItemFinder {
+
+        private LinearLayoutManager mLayoutManager;
+
+        public LinearVisibleItemFinder(LinearLayoutManager layoutManager) {
+            mLayoutManager = layoutManager;
+        }
+
+        @Override
+        public int getFirstVisibleItem() {
+            return mLayoutManager.findFirstVisibleItemPosition();
+        }
+    }
+
+    public interface VisibleItemFinder {
+        int getFirstVisibleItem();
+    }
+}
+
+-------------------------------------------------------------------------------------------------------------------------
+Item
+package com.android.msahakyan.fma.util;
+
+import android.os.Parcelable;
+import android.support.v4.util.ArrayMap;
+import android.util.Log;
+
+import com.android.msahakyan.fma.model.Album;
+import com.android.msahakyan.fma.model.Artist;
+import com.android.msahakyan.fma.model.Curator;
+import com.android.msahakyan.fma.model.Genre;
+import com.android.msahakyan.fma.model.Track;
+
+import java.util.Map;
+
+/**
+ * Created by msahakyan on 25/07/16.
+ */
+
+public interface Item extends Parcelable, Comparable {
+    void setQualifier(String qualifier);
+}
+---------------------------------------------------------------------------------------------------------------
+ItemDecorator
+package com.android.msahakyan.fma.util;
+
+import android.graphics.Rect;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+
+/**
+ * @author msahakyan
+ */
+public class ItemDecorator extends RecyclerView.ItemDecoration {
+
+    private final int mHorizontalSpace;
+    private final int mVerticalSpace;
+
+    public ItemDecorator(int horizontalSpace, int verticalSpace) {
+        this.mHorizontalSpace = horizontalSpace;
+        this.mVerticalSpace = verticalSpace;
+    }
+
+    @Override
+    public void getItemOffsets(Rect outRect, View view, RecyclerView parent,
+                               RecyclerView.State state) {
+        outRect.top = outRect.bottom = mVerticalSpace;
+        outRect.left = outRect.right = mHorizontalSpace;
+    }
+}
+-----------------------------------------------------------------------------------------
+ItemLoadedListener
+package com.android.msahakyan.fma.util;
+
+/**
+ * Created by msahakyan on 03/09/16.
+ */
+
+public interface ItemLoadedListener {
+    void onItemLoaded(Item item);
+}
+-------------------------------------------------------------------------------
+LoadNeighborTrackListener
+package com.android.msahakyan.fma.util;
+
+import android.support.annotation.IntDef;
+
+/**
+ * Created by msahakyan on 15/09/16.
+ */
+
+public interface LoadNeighborTrackListener {
+
+    int PREVIOUS = 0;
+    int NEXT = 1;
+
+    @IntDef({PREVIOUS, NEXT})
+    @interface AdjacentMode {
+    }
+
+    /**
+     * Calls when a neighbor track is requested
+     *
+     * @param mode The previous/next
+     */
+    void loadNeighborTrack(@AdjacentMode int mode);
+}
+----------------------------------------------------------------------------------------------------
+MediaPlayerPreparedListener
+package com.android.msahakyan.fma.util;
+
+/**
+ * Created by msahakyan on 03/09/16.
+ */
+
+public interface MediaPlayerPreparedListener {
+    /**
+     * Calls when {@link android.media.MediaPlayer} is prepared
+     */
+    void onPlayerPrepared();
+}
+----------------------------------------------------------------------------------------
+MediaPlayerStateChangeListener
+package com.android.msahakyan.fma.util;
+
+/**
+ * Created by msahakyan on 10/09/16.
+ */
+
+public interface MediaPlayerStateChangeListener {
+
+    /**
+     * Calls when {@link android.media.MediaPlayer} state changes
+     */
+    void onPlayerStateChanged(boolean isPlaying);
+}
+--------------------------------------------------------------------------------------------------------
+SearchHistoryStack
+package com.android.msahakyan.fma.util;
+
+
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.text.TextUtils;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import java.util.LinkedList;
+import java.util.List;
+
+import timber.log.Timber;
+
+/**
+ * Created by msahakyan on 05/10/16.
+ */
+
+public class SearchHistoryStack {
+
+    private static final String SEARCH_HISTORY = "search_history";
+    private static final String STACK_ITEMS = "stack_items";
+
+    private static final int STACK_SIZE = 10;
+
+    private SharedPreferences mPreferences;
+    private final Gson mGson = new Gson();
+
+    public SearchHistoryStack(Context context) {
+        mPreferences = context.getApplicationContext()
+            .getSharedPreferences(SEARCH_HISTORY, Context.MODE_PRIVATE);
+    }
+
+    /**
+     * Adds search term to search history stack
+     *
+     * @param searchTerm The search term
+     */
+    public void addToHistory(String searchTerm) {
+        if (TextUtils.isEmpty(searchTerm.trim())) {
+            return;
+        }
+        saveSearchTerms(acquireSearchTerms().push(searchTerm));
+    }
+
+    /**
+     * Removes search term from search history stack
+     *
+     * @param searchTerm The search term
+     */
+    public void removeFromHistory(String searchTerm) {
+        if (TextUtils.isEmpty(searchTerm.trim())) {
+            return;
+        }
+        SearchTermsStack<String> searchTermsStack = acquireSearchTerms();
+        if (!searchTermsStack.isEmpty()) {
+            saveSearchTerms(searchTermsStack.remove(searchTerm));
+        }
+    }
+
+    /**
+     * Returns all elements from search history stack
+     *
+     * @return <code>java.util.List<String></code>
+     */
+    public List<String> getSearchTermsFromHistory() {
+        return acquireSearchTerms().getStackElements();
+    }
+
+    /**
+     * Clears history from search suggestions stack
+     */
+    public void clearHistory() {
+        SearchTermsStack<String> searchTermsStack = acquireSearchTerms();
+        if (!searchTermsStack.isEmpty()) {
+            saveSearchTerms(searchTermsStack.clear());
+        }
+    }
+
+    private void saveSearchTerms(SearchTermsStack<String> elements) {
+        SharedPreferences.Editor editor = mPreferences.edit();
+        Gson gson = new Gson();
+        // Serializing stack
+        String jsonSearchTerms = gson.toJson(elements);
+        editor.putString(STACK_ITEMS, jsonSearchTerms);
+        editor.apply();
+    }
+
+    private SearchTermsStack<String> acquireSearchTerms() {
+        String jsonSearchItems = mPreferences.getString(STACK_ITEMS, null);
+        if (jsonSearchItems != null) {
+            return mGson.fromJson(jsonSearchItems, new TypeToken<SearchTermsStack<String>>() {
+            }.getType());
+        }
+        return new SearchTermsStack<>(STACK_SIZE);
+    }
+
+    private static class SearchTermsStack<T> {
+
+        private final LinkedList<T> mStorage;
+        private int mSize;
+
+        SearchTermsStack(int size) {
+            mSize = size > 0 ? size : 1;
+            mStorage = new LinkedList<>();
+        }
+
+        SearchTermsStack<T> push(T data) {
+            if (mStorage.contains(data)) {
+                mStorage.remove(data);
+            }
+            if (mStorage.size() == mSize) {
+                T last = mStorage.removeLast();
+                Timber.d("Search history stack is full, removing last element [" +
+                    last + "]");
+            }
+            mStorage.addFirst(data);
+            return this;
+        }
+
+        SearchTermsStack<T> remove(T element) {
+            mStorage.remove(element);
+            return this;
+        }
+
+        SearchTermsStack<T> clear() {
+            mStorage.clear();
+            return this;
+        }
+
+        public boolean isEmpty() {
+            return mStorage.isEmpty();
+        }
+
+        List<T> getStackElements() {
+            return mStorage;
+        }
+
+        @Override
+        public String toString() {
+            return mStorage.toString();
+        }
+    }
+}
+------------------------------------------------------------------------------------------------------------------------
+ZoomOutPageTransformer
+package com.android.msahakyan.fma.util;
+
+import android.support.v4.view.ViewPager;
+import android.view.View;
+
+
+/**
+ * Created by msahakyan on 02/10/16.
+ */
+
+public class ZoomOutPageTransformer implements ViewPager.PageTransformer {
+    private static final float MIN_SCALE = 0.85f;
+    private static final float MIN_ALPHA = 0.5f;
+
+    public void transformPage(View view, float position) {
+        int pageWidth = view.getWidth();
+        int pageHeight = view.getHeight();
+
+        if (position < -1) { // [-Infinity,-1)
+            // This page is way off-screen to the left.
+            view.setAlpha(0);
+
+        } else if (position <= 1) { // [-1,1]
+            // Modify the default slide transition to shrink the page as well
+            float scaleFactor = Math.max(MIN_SCALE, 1 - Math.abs(position));
+            float vertMargin = pageHeight * (1 - scaleFactor) / 2;
+            float horzMargin = pageWidth * (1 - scaleFactor) / 2;
+            if (position < 0) {
+                view.setTranslationX(horzMargin - vertMargin / 2);
+            } else {
+                view.setTranslationX(-horzMargin + vertMargin / 2);
+            }
+
+            // Scale the page down (between MIN_SCALE and 1)
+            view.setScaleX(scaleFactor);
+            view.setScaleY(scaleFactor);
+
+            // Fade the page relative to its size.
+            view.setAlpha(MIN_ALPHA +
+                (scaleFactor - MIN_SCALE) /
+                    (1 - MIN_SCALE) * (1 - MIN_ALPHA));
+
+        } else { // (1,+Infinity]
+            // This page is way off-screen to the right.
+            view.setAlpha(0);
+        }
+    }
+}
+-------------------------------------------------------------------------------------------------------------------
+DividerItemDecoration
+package com.android.msahakyan.fma.view;
+
+/**
+ * Created by msahakyan on 05/10/16.
+ */
+
+import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.widget.RecyclerView;
+import android.view.View;
+
+import com.android.msahakyan.fma.R;
+
+public class DividerItemDecoration extends RecyclerView.ItemDecoration {
+
+    private static final String NO_DECORATION = "no_decoration";
+
+    private Paint mPaintBorder;
+
+    public DividerItemDecoration(Context context) {
+        int intrinsicWidth = context.getResources().getDimensionPixelSize(R.dimen.border_size);
+        mPaintBorder = new Paint();
+        mPaintBorder.setColor(ContextCompat.getColor(context, R.color.dark_grey));
+        mPaintBorder.setStyle(Paint.Style.STROKE);
+        mPaintBorder.setStrokeWidth(intrinsicWidth);
+
+    }
+
+
+    @Override
+    public void onDraw(Canvas canvas, RecyclerView parent, RecyclerView.State state) {
+        final int childCount = parent.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            final View child = parent.getChildAt(i);
+            if (NO_DECORATION.equals(child.getTag())) {
+                continue;
+            }
+            canvas.drawRect(child.getLeft(), child.getTop(), child.getRight(), child.getBottom(), mPaintBorder);
+        }
+    }
+}
+--------------------------------------------------------------------------------
+FadeInNetworkImageView
+package com.android.msahakyan.fma.view;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
+import android.util.AttributeSet;
+
+import com.android.volley.toolbox.NetworkImageView;
+
+
+/**
+ * @author msahakyan
+ */
+public class FadeInNetworkImageView extends NetworkImageView {
+
+    private static final int FADE_IN_TIME_MS = 1000; // millisecond
+
+    public FadeInNetworkImageView(Context context) {
+        super(context);
+    }
+
+    public FadeInNetworkImageView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+    }
+
+    public FadeInNetworkImageView(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+    }
+
+    @Override
+    public void setImageBitmap(Bitmap bm) {
+        TransitionDrawable td = new TransitionDrawable(new Drawable[]{
+            new ColorDrawable(getResources().getColor(android.R.color.transparent)),
+            new BitmapDrawable(getContext().getResources(), bm)
+        });
+
+        setImageDrawable(td);
+        td.startTransition(FADE_IN_TIME_MS);
+    }
+}
+------------------------------------------------------------------------------------------------------------------
+MoreDataLoaderView
+package com.android.msahakyan.fma.view;
+
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.os.Build;
+import android.util.AttributeSet;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+
+import com.android.msahakyan.fma.R;
+import com.github.rahatarmanahmed.cpv.CircularProgressView;
+
+import butterknife.Bind;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+
+/**
+ * @author msahakyan
+ */
+
+public class MoreDataLoaderView extends FrameLayout {
+
+    @Bind(R.id.loading_failed_text)
+    TextView mLoadingFailedView;
+    @Bind(R.id.loading_spinner)
+    CircularProgressView mLoadingSpinner;
+
+    private LoadMoreDataCallback mListener;
+
+    public MoreDataLoaderView(Context context) {
+        super(context);
+        init(context, null);
+    }
+
+    public MoreDataLoaderView(Context context, AttributeSet attrs) {
+        super(context, attrs);
+        init(context, attrs);
+    }
+
+    public MoreDataLoaderView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        init(context, attrs);
+    }
+
+    @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+    public MoreDataLoaderView(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        super(context, attrs, defStyleAttr, defStyleRes);
+        init(context, attrs);
+    }
+
+    @OnClick(R.id.loading_failed_text)
+    public void onClickLoadingFailed() {
+        mListener.loadMoreData();
+    }
+
+    private void init(final Context context, AttributeSet attrs) {
+        LayoutInflater.from(context).inflate(R.layout.layout_load_more_data, this, true);
+        ButterKnife.bind(MoreDataLoaderView.this);
+    }
+
+    public void setLoadDataCallback(LoadMoreDataCallback listener) {
+        mListener = listener;
+    }
+
+    public void setLoadingShown(boolean show) {
+        mLoadingFailedView.setVisibility(View.GONE);
+        if (show) {
+            showLoadingSpinner();
+        } else {
+            hideLoadingSpinner();
+        }
+    }
+
+    public boolean isLoadingShown() {
+        return mLoadingSpinner.getVisibility() == VISIBLE;
+    }
+
+    public void onError() {
+        mLoadingFailedView.setVisibility(View.VISIBLE);
+        hideLoadingSpinner();
+    }
+
+    private void showLoadingSpinner() {
+        if (mLoadingSpinner != null) {
+            mLoadingSpinner.setVisibility(VISIBLE);
+            mLoadingSpinner.startAnimation();
+        }
+    }
+
+    private void hideLoadingSpinner() {
+        if (mLoadingSpinner != null) {
+            mLoadingSpinner.setVisibility(GONE);
+            mLoadingSpinner.stopAnimation();
+        }
+    }
+
+    public interface LoadMoreDataCallback {
+        void loadMoreData();
+    }
+}
+-------------------------------------------------------------------------------------------------------
+SearchView
+package com.android.msahakyan.fma.view;
+
+/**
+ * Created by msahakyan on 05/10/16.
+ */
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.view.View;
+
+import com.android.msahakyan.fma.R;
+
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
+public class SearchView extends android.support.v7.widget.SearchView {
+
+    @Bind(R.id.search_close_btn)
+    View closeButton;
+
+    public SearchView(Context context) {
+        this(context, null);
+    }
+
+    public SearchView(Context context, AttributeSet attrs) {
+        this(context, attrs, R.attr.searchViewStyle);
+    }
+
+    public SearchView(Context context, AttributeSet attrs, int defStyleAttr) {
+        super(context, attrs, defStyleAttr);
+        ButterKnife.bind(this);
+    }
+
+
+    public void showCloseButton(boolean show) {
+        if (show) {
+            closeButton.setVisibility(VISIBLE);
+        } else {
+            closeButton.setVisibility(GONE);
+        }
+    }
+}
+---------------------------------------------------------------------------------------------------------------------
+MediaPlayerService
+package com.android.msahakyan.fma;
+
+import android.app.Notification;
+import android.app.PendingIntent;
+import android.app.Service;
+import android.content.Intent;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.IBinder;
+import android.os.Looper;
+import android.os.Message;
+import android.support.v4.app.NotificationCompat;
+import android.widget.Toast;
+
+import com.android.msahakyan.fma.activity.MainActivity;
+
+public class MediaPlayerService extends Service {
+    private static final int NOTIFICATION_ID = 1001;
+
+    public MediaPlayerService() {
+    }
+
+    private Looper mServiceLooper;
+    private ServiceHandler mServiceHandler;
+
+    // Handler that receives messages from the thread
+    private final class ServiceHandler extends Handler {
+        public ServiceHandler(Looper looper) {
+            super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            // Normally we would do some work here, like download a file.
+            // For our sample, we just sleep for 5 seconds.
+            try {
+                showNotification();
+            } catch (Exception e) {
+                // Restore interrupt status.
+                Thread.currentThread().interrupt();
+            }
+            // Stop the service using the startId, so that we don't stop
+            // the service in the middle of handling another job
+            stopSelf(msg.arg1);
+        }
+    }
+
+    private void showNotification() {
+        String songName = "song name";
+// assign the song name to songName
+        PendingIntent pi = PendingIntent.getActivity(getApplicationContext(), 0,
+            new Intent(getApplicationContext(), MainActivity.class),
+            PendingIntent.FLAG_UPDATE_CURRENT);
+//        Notification notification = new Notification();
+//        notification.tickerText = "some text";
+//        notification.icon = R.drawable.ic_av_play;
+//        notification.flags |= Notification.FLAG_ONGOING_EVENT;
+//        notification.setLatestEventInfo(getApplicationContext(), "MusicPlayerSample",
+//            "Playing: " + "song name", pi);
+//
+
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+
+        builder
+            .setTicker("some ticker text")
+            .setContentTitle("Fma Music Player")
+            .setContentText("You have a new message")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentIntent(pi)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setDefaults(Notification.DEFAULT_ALL)
+            .setNumber(32)
+            .build();
+//        builder.setSubText("This is subtext...");   //API level 16
+
+
+        startForeground(NOTIFICATION_ID, builder.getNotification());
+    }
+
+    @Override
+    public void onCreate() {
+        // Start up the thread running the service.  Note that we create a
+        // separate thread because the service normally runs in the process's
+        // main thread, which we don't want to block.  We also make it
+        // background priority so CPU-intensive work will not disrupt our UI.
+        HandlerThread thread = new HandlerThread("ServiceStartArguments",
+            Thread.NORM_PRIORITY);
+        thread.start();
+
+        // Get the HandlerThread's Looper and use it for our Handler
+        mServiceLooper = thread.getLooper();
+        mServiceHandler = new ServiceHandler(mServiceLooper);
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Toast.makeText(this, "service starting", Toast.LENGTH_SHORT).show();
+
+        // For each start request, send a message to start a job and deliver the
+        // start ID so we know which request we're stopping when we finish the job
+        Message msg = mServiceHandler.obtainMessage();
+        msg.arg1 = startId;
+        mServiceHandler.sendMessage(msg);
+
+        // If we get killed, after returning from here, restart
+        return START_STICKY;
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        // We don't provide binding, so return null
+        return null;
+    }
+
+    @Override
+    public void onDestroy() {
+        Toast.makeText(this, "service done", Toast.LENGTH_SHORT).show();
+    }
+}
+============================================================================================================================
+activity_main
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:id="@+id/activity_main"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Load the toolbar here -->
+    <include
+        layout="@layout/layout_toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"/>
+
+    <FrameLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+</LinearLayout>
+------------------------------------------------------------------------
+activity_splash_screen
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:background="@drawable/splash"
+    android:layout_height="match_parent">
+
+
+
+
+
+</RelativeLayout>
+
+-----------------------------------------------------------------------------------
+big_notification
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:layout_gravity="center"
+              android:background="@color/colorPrimary"
+              android:gravity="center"
+              android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/image_view_track"
+        android:layout_width="90dp"
+        android:layout_height="90dp"
+        android:scaleType="centerCrop"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:padding="5dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/text_song_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:lines="1"
+                android:paddingLeft="@dimen/padding_size_extra_small"
+                android:textColor="@android:color/white"
+                android:textSize="@dimen/text_size_pts"/>
+
+            <Button
+                android:id="@+id/btn_delete"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginLeft="@dimen/margin_size_small"
+                android:layout_marginStart="@dimen/margin_size_small"
+                android:background="@android:drawable/ic_menu_close_clear_cancel"/>
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/text_album_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:lines="1"
+            android:paddingLeft="@dimen/padding_size_extra_small"
+            android:textSize="@dimen/text_size_title"/>
+
+        <LinearLayout
+            style="?android:attr/buttonBarStyle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:divider="@drawable/vertical_divider"
+            android:dividerPadding="12dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:showDividers="middle">
+
+            <Button
+                android:id="@+id/btn_previous"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="@dimen/margin_size_small"
+                android:background="@drawable/ic_av_next"/>
+
+            <Button
+                android:id="@+id/btn_pause"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="@dimen/margin_size_small"
+                android:background="@drawable/ic_av_pause"/>
+
+            <Button
+                android:id="@+id/btn_play"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="@dimen/margin_size_small"
+                android:background="@drawable/ic_av_play"
+                android:visibility="gone"/>
+
+            <Button
+                android:id="@+id/btn_next"
+                style="?android:attr/buttonBarButtonStyle"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="@dimen/margin_size_small"
+                android:background="@drawable/ic_av_previous"/>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>
+------------------------------------------------------------------------------------
+custom_dialog_layout
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:id="@+id/dialog_header"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/dialog_title"
+        style="@style/Fma.Dialog.Title"
+        android:text="@string/album_detail_info"/>
+
+    <View style="@style/ListItemDivider"/>
+
+    <ScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/page_margin">
+
+        <LinearLayout
+            android:id="@+id/dialog_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"/>
+
+    </ScrollView>
+
+</LinearLayout>
+---------------------------------------------------------------------------
+custom_notification
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="wrap_content"
+              android:gravity="center"
+              android:orientation="horizontal">
+
+    <ImageView
+        android:id="@+id/image_view_track"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:contentDescription="@string/description_track_image"
+        android:scaleType="centerCrop"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/padding_size_small">
+
+        <TextView
+            android:id="@+id/text_song_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:gravity="center_vertical"
+            android:lines="1"
+            android:selectAllOnFocus="true"
+            android:textColor="@color/black"
+            android:textSize="@dimen/text_size_pts"/>
+
+        <TextView
+            android:id="@+id/text_album_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:lines="1"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:selectAllOnFocus="true"
+            android:textColor="@color/black"
+            android:textSize="@dimen/text_size_title"/>
+    </LinearLayout>
+
+</LinearLayout>
+----------------------------------------------------------------------------------------------
+fragment_album_detail
+<RelativeLayout
+    android:id="@+id/main_detail_container"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content">
+
+    <LinearLayout
+        android:id="@+id/album_detail_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+
+
+            <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                android:id="@+id/album_image"
+                android:layout_width="match_parent"
+                android:layout_height="180dp"
+android:layout_marginBottom="10dp"
+                android:contentDescription="@string/description_artist_image"
+                android:scaleType="centerCrop"
+                android:transitionName="albumImage"
+                tools:targetApi="lollipop"/>
+
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/margin_size_normal"
+            android:layout_marginRight="@dimen/margin_size_normal"
+            android:orientation="horizontal"
+            android:weightSum="5">
+
+            <TextView
+                android:id="@+id/item_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="3"
+                android:ellipsize="end"
+                android:lines="1"
+                android:paddingBottom="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"
+                android:textStyle="bold"/>
+
+            <RelativeLayout
+                android:id="@+id/artist_info_container"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="2">
+
+                <TextView
+                    android:id="@+id/artist_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_toLeftOf="@+id/artist_image"
+                    android:layout_toStartOf="@+id/artist_image"
+                    android:ellipsize="end"
+                    android:lines="1"
+                    android:paddingBottom="@dimen/padding_size_extra_small"
+                    android:paddingLeft="@dimen/padding_size_small"
+                    android:paddingRight="@dimen/padding_size_small"
+                    android:textSize="@dimen/text_size_title"/>
+
+                <TextView
+                    android:id="@+id/artist_creation_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/artist_name"
+                    android:layout_toLeftOf="@+id/artist_image"
+                    android:layout_toStartOf="@+id/artist_image"
+                    android:ellipsize="end"
+                    android:lines="1"
+                    android:paddingLeft="@dimen/padding_size_small"
+                    android:paddingRight="@dimen/padding_size_small"
+                    android:textSize="@dimen/text_size_title"/>
+
+
+                <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                    android:id="@id/artist_image"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_marginEnd="@dimen/margin_size_normal"
+                    android:layout_marginRight="@dimen/margin_size_normal"
+                    android:contentDescription="@string/description_artist_image"
+                    android:scaleType="centerCrop"/>
+
+            </RelativeLayout>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/label_tracks"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/album_detail_container"
+        android:layout_marginLeft="@dimen/margin_size_small"
+        android:layout_marginRight="@dimen/margin_size_small"
+        android:padding="@dimen/padding_size_small"
+        android:text="@string/label_songs"
+        android:textSize="@dimen/text_size_title"
+        android:textStyle="bold"/>
+
+    <View
+        android:id="@+id/item_divider"
+        style="@style/ListItemDivider"
+        android:layout_below="@id/label_tracks"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/item_divider"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</RelativeLayout>
+
+------------------------------------------------------------------------------------------------
+fragment_albums
+<FrameLayout style="@style/Fma.ItemList.Item"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             tools:context="com.android.msahakyan.fma.fragment.AlbumsFragment">
+
+    <include layout="@layout/recycler_view"/>
+
+    <com.android.msahakyan.fma.view.MoreDataLoaderView
+        android:id="@+id/loading_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</FrameLayout>
+--------------------------------------------------------------------------------------------------
+fragment_artist_detail
+<LinearLayout
+    android:id="@+id/main_detail_container"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <RelativeLayout
+        android:id="@+id/album_detail_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/margin_size_normal"
+        android:orientation="vertical">
+
+
+            <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                android:id="@+id/artist_image"
+                android:layout_width="@dimen/artist_image_width"
+                android:layout_height="@dimen/artist_image_height"
+                android:contentDescription="@string/description_artist_image"
+                android:scaleType="centerCrop"
+                android:transitionName="albumImage"
+                tools:targetApi="lollipop"/>
+
+
+
+        <LinearLayout
+            android:id="@+id/artist_info_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="@dimen/margin_size_normal"
+            android:layout_marginRight="@dimen/margin_size_normal"
+            android:layout_toEndOf="@id/artist_image"
+            android:layout_toRightOf="@id/artist_image"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/artist_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:lines="2"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_pts"
+                android:textStyle="bold"/>
+
+            <TextView
+                android:id="@+id/artist_creation_date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"/>
+
+            <TextView
+                android:id="@+id/artist_followers"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"/>
+
+            <TextView
+                android:id="@+id/artist_comments"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"/>
+
+            <TextView
+                android:id="@+id/artist_location"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"
+                android:visibility="gone"/>
+
+            <TextView
+                android:id="@+id/artist_bio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textSize="@dimen/text_size_title"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/label_albums"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/artist_image"
+            android:layout_marginLeft="@dimen/margin_size_small"
+            android:layout_marginRight="@dimen/margin_size_small"
+            android:paddingBottom="@dimen/padding_size_small"
+            android:paddingTop="@dimen/padding_size_large"
+            android:text="@string/label_albums"
+            android:textSize="@dimen/text_size_pts"
+            android:textStyle="bold"/>
+
+        <View
+            android:id="@+id/item_divider"
+            android:layout_marginBottom="@dimen/margin_size_small"
+            style="@style/ListItemDivider"
+            android:layout_below="@id/label_albums"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/list_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_below="@id/item_divider"/>
+
+    </RelativeLayout>
+
+    <include layout="@layout/fragment_base"/>
+
+</LinearLayout>
+
+-------------------------------------------------------------------------------------------------------
+fragment_artists
+<FrameLayout style="@style/Fma.ItemList.Item"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             tools:context="com.android.msahakyan.fma.fragment.ArtistsFragment">
+
+    <include layout="@layout/recycler_view"/>
+
+    <com.android.msahakyan.fma.view.MoreDataLoaderView
+        android:id="@+id/loading_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</FrameLayout>
+-----------------------------------------------------------------------------------------------------------------
+fragment_base
+<?xml version="1.0" encoding="utf-8"?>
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <com.github.rahatarmanahmed.cpv.CircularProgressView
+        android:id="@+id/progress_view"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="@dimen/progress_icon_size"
+        android:layout_height="@dimen/progress_icon_size"
+        android:layout_centerInParent="true"
+        android:layout_gravity="center"
+        app:cpv_animAutostart="true"
+        app:cpv_color="@color/lighter_grey"
+        app:cpv_indeterminate="true"/>
+
+    <FrameLayout
+        android:id="@+id/error_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:text="@string/no_data"/>
+    </FrameLayout>
+
+    <FrameLayout
+        android:id="@+id/empty_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:gravity="center"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/error_message"
+            style="@style/Fma.Widget.TextView.NoData"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"/>
+    </FrameLayout>
+</merge>
+----------------------------------------------------------------------------------------------------
+fragment_genres
+<FrameLayout style="@style/Fma.ItemList.Item"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <include layout="@layout/recycler_view"/>
+
+    <com.android.msahakyan.fma.view.MoreDataLoaderView
+        android:id="@+id/loading_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</FrameLayout>
+----------------------------------------------------------------------------------------------
+fragment_main_pager
+<RelativeLayout
+    android:id="@+id/container"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <android.support.v4.view.ViewPager
+        android:id="@+id/vp_main"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#ffffff">
+
+        <android.support.v4.view.PagerTabStrip
+            android:id="@+id/pts_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+           android:padding="10dp"
+            android:textSize="@dimen/text_size_pts"
+            android:textAllCaps="true"
+            android:textStyle="bold"
+            android:typeface="serif"
+            android:background="@color/colorPrimary"
+           />
+
+    </android.support.v4.view.ViewPager>
+
+</RelativeLayout>
+----------------------------------------------------------------------------------------------------------
+fragment_network_request
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"/>
+--------------------------------------------------------------------------------------------------------
+fragment_search_results
+<FrameLayout style="@style/Fma.ItemList.Item"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <include layout="@layout/recycler_view"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</FrameLayout>
+-------------------------------------------------------------------------------------------------------------------
+fragment_search_suggestions
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent">
+
+    <include layout="@layout/fragment_base"/>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/list_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+</FrameLayout>
+-----------------------------------------------------------------------------------------------------------------
+fragment_track_detail
+<RelativeLayout
+    android:id="@+id/main_detail_container"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+
+
+
+
+
+    <ImageView
+        android:background="#50e91e63"
+        android:id="@+id/track_detail_image_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@string/description_blurred_image"
+        android:scaleType="centerCrop"/>
+
+    <RelativeLayout
+        android:id="@+id/track_detail_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/include"
+        android:layout_toEndOf="@+id/include">
+
+
+        <RelativeLayout
+            android:layout_above="@+id/track_title"
+            android:id="@+id/dd"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <ImageView
+                android:layout_alignParentRight="true"
+                android:id="@+id/license"
+                android:layout_width="70dp"
+                android:layout_height="22dp"
+                android:layout_gravity="end|top"
+                android:layout_margin="@dimen/margin_size_small"
+
+                android:contentDescription="@string/view_license"
+                android:src="@drawable/license"/>
+
+            <ImageView
+                android:id="@+id/track_image"
+                android:layout_width="180dp"
+                android:layout_height="180dp"
+                android:layout_gravity="center_horizontal"
+                android:contentDescription="@string/description_track_image"
+                android:scaleType="centerCrop"
+                android:layout_centerVertical="true"
+                android:layout_centerHorizontal="true" />
+
+            <com.github.rahatarmanahmed.cpv.CircularProgressView
+                android:id="@+id/progress_detail_view"
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:layout_centerHorizontal="true"
+                android:layout_centerVertical="true"
+                android:layout_gravity="center_horizontal"
+                android:contentDescription="@string/description_track_image"
+                android:scaleType="centerCrop"
+                android:visibility="visible"
+                app:cpv_animAutostart="true"
+                app:cpv_color="@color/lighter_grey"
+                app:cpv_indeterminate="true" />
+
+
+        </RelativeLayout>
+        <TextView
+android:layout_above="@+id/tt"
+            android:id="@+id/track_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:gravity="bottom|center_horizontal"
+            android:lines="1"
+
+            android:textColor="@color/white"
+            android:textSize="@dimen/text_size_detail_title"
+            android:textStyle="bold"/>
+        <RelativeLayout
+            android:id="@+id/tt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:paddingBottom="@dimen/padding_size_medium"
+            android:layout_above="@+id/player_controls"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true"
+            android:layout_marginBottom="11dp">
+
+            <TextView
+                android:textColor="#ffffff"
+                android:id="@+id/progress_passed"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:elevation="5dp"
+                android:gravity="center"
+                android:paddingLeft="@dimen/padding_size_normal"
+                android:paddingRight="@dimen/padding_size_small"
+                android:text="@string/progress_start_val"
+                android:textSize="@dimen/text_size_normal"/>
+
+            <SeekBar
+                android:id="@+id/seek_bar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_margin="8dp"
+                android:layout_toLeftOf="@+id/song_time"
+                android:layout_toRightOf="@id/progress_passed"
+                android:background="@drawable/progress_bar"
+                android:maxHeight="1dp"
+                android:minHeight="1dp"
+                android:thumb="@color/transparent_orange"/>
+
+            <TextView
+                android:textColor="#ffffff"
+                android:id="@id/song_time"
+                android:layout_width="50dp"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:gravity="center"
+                android:paddingLeft="@dimen/padding_size_small"
+                android:paddingRight="@dimen/padding_size_normal"
+                android:text="@string/progress_start_val"
+                android:textSize="@dimen/text_size_normal"/>
+
+        </RelativeLayout>
+
+        <RelativeLayout
+            android:layout_marginBottom="60dp"
+            android:id="@+id/player_controls"
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:gravity="center_vertical"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true">
+
+
+            <ImageButton
+
+                android:id="@+id/button_previous"
+                android:layout_width="50dp"
+                android:layout_height="30dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="@dimen/padding_size_normal"
+                android:layout_marginRight="@dimen/padding_size_normal"
+                android:layout_toLeftOf="@+id/button_play_pause"
+                android:layout_toStartOf="@+id/button_play_pause"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/button_play_pause"
+                android:src="@drawable/ic_av_next"/>
+
+            <ImageView
+                android:id="@id/button_play_pause"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_centerInParent="true"
+                android:layout_marginLeft="@dimen/padding_size_normal"
+                android:layout_marginRight="@dimen/padding_size_normal"
+
+                android:contentDescription="@string/button_play_pause"
+                android:padding="@dimen/padding_size_small"
+                android:src="@drawable/ic_av_play"/>
+
+            <ImageButton
+                android:padding="3dp"
+                android:id="@+id/button_next"
+                android:layout_width="50dp"
+                android:layout_height="30dp"
+                android:layout_centerVertical="true"
+                android:layout_marginLeft="@dimen/padding_size_normal"
+                android:layout_marginRight="@dimen/padding_size_normal"
+                android:layout_toEndOf="@id/button_play_pause"
+                android:layout_toRightOf="@id/button_play_pause"
+                android:background="@android:color/transparent"
+
+                android:contentDescription="@string/button_play_pause"
+                android:src="@drawable/ic_av_previous"/>
+
+
+
+
+        </RelativeLayout>
+
+        <android.support.design.widget.FloatingActionButton
+            android:id="@+id/button_download"
+            android:layout_marginBottom="10dp"
+            style="@style/Fma.Widget.FloatingActionButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:clickable="true"
+            android:src="@drawable/ic_file_download"
+            app:fabSize="mini"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true" />
+
+    </RelativeLayout>
+
+    <include layout="@layout/fragment_base"
+        android:id="@+id/include" />
+
+
+
+
+</RelativeLayout>
+
+--------------------------------------------------------------------------------------------------------------------------
+fragment_tracks
+<FrameLayout style="@style/Fma.ItemList.Item"
+             xmlns:android="http://schemas.android.com/apk/res/android"
+             xmlns:tools="http://schemas.android.com/tools"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent"
+             tools:context="com.android.msahakyan.fma.fragment.TracksFragment">
+
+    <include layout="@layout/recycler_view"/>
+
+    <com.android.msahakyan.fma.view.MoreDataLoaderView
+        android:id="@+id/loading_footer"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:gravity="center"
+        android:orientation="vertical"/>
+
+    <include layout="@layout/fragment_base"/>
+
+</FrameLayout>
+-----------------------------------------------------------------------------------------------------------------------
+layout_load_more_data
+<?xml version="1.0" encoding="utf-8"?>
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <TextView
+        android:id="@+id/loading_failed_text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:layout_margin="8dp"
+        android:background="@color/colorAccent"
+        android:gravity="center"
+        android:text="@string/error_load_more"
+        android:visibility="gone"/>
+
+    <com.github.rahatarmanahmed.cpv.CircularProgressView
+        android:id="@+id/loading_spinner"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="@dimen/progress_icon_size"
+        android:layout_height="@dimen/progress_icon_size"
+        android:layout_gravity="center"
+        android:visibility="gone"
+        app:cpv_animAutostart="true"
+        app:cpv_color="@color/lighter_grey"
+        app:cpv_indeterminate="true"/>
+
+</merge>
+----------------------------------------------------------------------------------------------------------------------
+layout_toolbar
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v7.widget.Toolbar
+    android:id="@+id/toolbar"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/colorPrimary"
+    android:minHeight="?attr/actionBarSize"
+    app:contentInsetLeft="@dimen/margin_size_medium"
+    app:contentInsetStart="@dimen/margin_size_medium"
+    app:titleTextColor="@android:color/white"/>
+--------------------------------------------------------------------------------------------------
+list_item_album
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/margin_size_small"
+    app:cardCornerRadius="1dp"
+    app:cardPreventCornerOverlap="false">
+
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                android:id="@+id/album_image"
+                android:layout_margin="2dp"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/album_image_height"
+                android:contentDescription="@string/description_album_image"
+                android:scaleType="centerCrop"/>
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/margin_size_small"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/album_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="start|center_vertical"
+                    android:lines="1"
+                    android:paddingLeft="@dimen/padding_size_small"
+                    android:paddingRight="@dimen/padding_size_small"
+                    android:paddingTop="@dimen/padding_size_extra_small"
+                    android:textSize="@dimen/text_size_title"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/artist_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/album_title"
+                    android:layout_toLeftOf="@+id/icon_track_count"
+                    android:layout_toStartOf="@+id/icon_track_count"
+                    android:gravity="start|center_vertical"
+                    android:lines="1"
+                    android:paddingBottom="@dimen/padding_size_small"
+                    android:paddingLeft="@dimen/padding_size_small"
+                    android:paddingRight="@dimen/padding_size_small"
+                    android:paddingTop="0dp"
+                    android:textSize="@dimen/text_size_normal"/>
+
+                <ImageView
+                    android:id="@id/icon_track_count"
+                    android:layout_width="@dimen/icon_track_width"
+                    android:layout_height="@dimen/icon_track_height"
+                    android:layout_alignParentEnd="true"
+                    android:layout_alignParentRight="true"
+                    android:layout_below="@id/album_title"
+                    android:layout_marginLeft="@dimen/margin_size_extra_small"
+                    android:layout_marginRight="@dimen/margin_size_extra_small"
+                    android:layout_marginTop="@dimen/margin_size_extra_small"
+                    android:contentDescription="@string/description_track_count"
+                    android:src="@drawable/track_icon"/>
+
+                <TextView
+                    android:id="@+id/track_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_below="@id/album_title"
+                    android:layout_marginEnd="@dimen/margin_right_track_count"
+                    android:layout_marginRight="@dimen/margin_right_track_count"
+                    android:layout_toLeftOf="@id/icon_track_count"
+                    android:layout_toStartOf="@id/icon_track_count"
+                    android:gravity="end|center_vertical"
+                    android:lines="1"
+                    android:paddingBottom="@dimen/padding_size_small"
+                    android:paddingTop="0dp"
+                    android:textSize="@dimen/text_size_normal"/>
+
+            </RelativeLayout>
+
+        </LinearLayout>
+
+
+
+</android.support.v7.widget.CardView>
+--------------------------------------------------------------------------------------------------------
+list_item_artist
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/margin_size_small"
+    app:cardCornerRadius="1dp"
+
+   >
+
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                android:layout_margin="2dp"
+                android:id="@+id/artist_image"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/artist_image_height"
+                android:contentDescription="@string/description_artist_image"
+                android:scaleType="centerCrop"/>
+
+            <TextView
+
+                android:id="@+id/artist_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:lines="1"
+                android:padding="5dp"/>
+
+        </LinearLayout>
+
+
+</android.support.v7.widget.CardView>
+---------------------------------------------------------------------------------------------------------------------
+list_item_genre
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/selector_list_item">
+
+    <TextView
+        android:id="@+id/genre_title"
+        xmlns:android="http://schemas.android.com/apk/res/android"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/selector_list_item"
+        android:drawableEnd="@drawable/ic_arrow_right"
+        android:drawableRight="@drawable/ic_arrow_right"
+        android:ellipsize="end"
+        android:gravity="center_vertical|start"
+        android:lines="1"
+        android:paddingLeft="@dimen/padding_size_normal"
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_size_pts"
+        android:textStyle="bold"
+        android:typeface="serif"/>
+
+    <View style="@style/ListItemDivider"/>
+
+</LinearLayout>
+-------------------------------------------------------------------------------------------------------------
+liat_item_search_history
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:layout_width="match_parent"
+              android:layout_height="?attr/listPreferredItemHeightSmall"
+              android:background="@drawable/selector_list_item"
+              android:clickable="true"
+              android:orientation="horizontal">
+
+    <TextView
+        android:id="@+id/search_term"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:lines="1"
+        android:paddingLeft="@dimen/padding_size_medium"
+        android:paddingRight="@dimen/padding_size_medium"/>
+
+    <ImageView
+
+        android:id="@+id/action_remove_history_item"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:layout_gravity="end|center_vertical"
+        android:layout_marginEnd="@dimen/margin_size_small"
+        android:layout_marginRight="@dimen/margin_size_small"
+        android:src="@drawable/ic_action_delete"/>
+</LinearLayout>
+-------------------------------------------------------------------------------------------------------------------------------
+list_item_search_result
+<?xml version="1.0" encoding="utf-8"?>
+
+<android.support.v7.widget.CardView
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/margin_size_small"
+    app:cardCornerRadius="1dp"
+    app:cardPreventCornerOverlap="false">
+
+<RelativeLayout
+
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+   android:layout_margin="4dp"
+
+    android:gravity="center_vertical"
+    android:orientation="vertical"
+  >
+
+
+
+
+
+
+    <ImageView
+        android:padding="4dp"
+        android:id="@+id/icon_track"
+        android:layout_width="30dp"
+        android:layout_height="40dp"
+        android:src="@drawable/nxt"
+        android:layout_centerVertical="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true" />
+
+    <TextView
+        android:id="@+id/track_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+android:padding="4dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical|start"
+        android:lines="1"
+
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_size_larger"
+        android:textStyle="bold"
+        android:typeface="serif"
+        android:layout_toLeftOf="@+id/icon_track"
+        android:layout_toStartOf="@+id/icon_track" />
+
+    <TextView
+        android:id="@+id/track_artist_name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/track_title"
+android:padding="4dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical|start"
+        android:lines="1"
+
+        android:textAllCaps="false"
+        android:textSize="@dimen/text_size_normal"
+        android:typeface="serif"
+        android:layout_toLeftOf="@+id/icon_track"
+        android:layout_toStartOf="@+id/icon_track" />
+
+
+
+
+
+</RelativeLayout>
+
+</android.support.v7.widget.CardView>
+---------------------------------------------------------------------------------------------------------------
+list_item_track
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+
+    android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/track_number"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_marginLeft="@dimen/margin_size_normal"
+                android:layout_marginRight="@dimen/margin_size_small"
+                android:gravity="center_vertical"
+                android:textColor="@color/grey"
+                android:textSize="@dimen/text_size_title"/>
+
+            <TextView
+                android:id="@+id/track_title"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_toEndOf="@id/track_number"
+                android:layout_toLeftOf="@+id/track_duration"
+                android:layout_toRightOf="@id/track_number"
+                android:layout_toStartOf="@+id/track_duration"
+                android:gravity="center_vertical"
+                android:lines="1"
+                android:textColor="@color/grey"
+                android:textSize="@dimen/text_size_title"/>
+
+            <TextView
+                android:id="@id/track_duration"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentEnd="true"
+                android:layout_alignParentRight="true"
+                android:layout_marginLeft="@dimen/margin_size_normal"
+                android:layout_marginRight="@dimen/margin_size_normal"
+                android:gravity="center_vertical"
+                android:lines="1"
+                android:textColor="@color/grey"
+                android:textSize="@dimen/text_size_title"/>
+
+        </RelativeLayout>
+
+        <View style="@style/ListItemDivider"/>
+
+    </LinearLayout>
+
+
+--------------------------------------------------------------------------------------------------------------------------
+list_item_track_with_icon
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/margin_size_small"
+    app:cardPreventCornerOverlap="false">
+
+
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.android.msahakyan.fma.view.FadeInNetworkImageView
+                android:id="@+id/track_image"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/track_image_height"
+                android:contentDescription="@string/description_track_image"
+                android:scaleType="centerCrop"/>
+
+            <TextView
+                android:id="@+id/track_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="middle"
+                android:gravity="center"
+                android:lines="1"
+                android:padding="@dimen/padding_size_small"
+                android:textStyle="bold"/>
+
+        </LinearLayout>
+
+
+</android.support.v7.widget.CardView>
+-------------------------------------------------------------------------------------------------
+recycler_view
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.v7.widget.RecyclerView
+    android:id="@+id/list_view"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+   />
+==============================================================================================================
