@@ -1,0 +1,395 @@
+anim ma.........
+slide_down_animation
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <translate
+        android:duration="1500"
+        android:fromYDelta="5"
+        android:toYDelta="90%"/>
+</set>
+-----------------------------------------------------------
+slide_up_animation
+<?xml version="1.0" encoding="utf-8"?>
+<set xmlns:android="http://schemas.android.com/apk/res/android">
+    <translate
+        android:duration="1500"
+        android:fromYDelta="90%"
+        android:toYDelta="0"/>
+</set>
+------------------------------------------------------------
+drawable ma.....
+button_selector
+<selector
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_enabled="true">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="ring"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/background_default_dark"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/dark_grey"/>
+        </shape>
+    </item>
+
+    <item android:state_enabled="false">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="ring"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/transparent"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/background_default_dark"/>
+        </shape>
+    </item>
+
+</selector>
+------------------------------------------------------------------------------
+circle_button_selector
+<selector
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="false">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="ring"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/background_default_dark"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/dark_grey"/>
+        </shape>
+    </item>
+
+    <item android:state_pressed="true">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="ring"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/transparent"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/background_default_dark"/>
+        </shape>
+    </item>
+
+</selector>
+---------------------------------------------------------------------------------------------
+progress_bar
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@android:id/background">
+        <shape>
+            <solid android:color="@color/white"/>
+        </shape>
+    </item>
+    <item android:id="@android:id/progress">
+        <clip>
+            <shape>
+                <solid android:color="@color/lighter_grey"/>
+            </shape>
+        </clip>
+    </item>
+</layer-list>
+-----------------------------------------------------------------------------
+rectangular_selector
+<selector
+    xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:state_pressed="false">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="rectangle"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/background_default_dark"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/dark_grey"/>
+        </shape>
+    </item>
+
+    <item android:state_pressed="true">
+        <shape
+            android:innerRadius="0dp"
+            android:shape="rectangle"
+            android:thicknessRatio="2.1"
+            android:useLevel="false">
+            <solid android:color="@color/transparent"/>
+            <stroke
+                android:width="1dp"
+                android:color="@color/background_default_dark"/>
+        </shape>
+    </item>
+
+</selector>
+----------------------------------------------------------------------------------------
+selector_list_item
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item android:drawable="@color/background_default_dark" android:state_pressed="true"/>
+    <item android:drawable="@android:color/transparent"/>
+
+</selector>
+--------------------------------------------------------------------------------------------
+vertical_divider
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <size android:width="1dp" />
+    <solid android:color="@color/white" />
+</shape>
+------------------------------------------------------------------
+menu ma......
+menu_main
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/item_search"
+        android:icon="@drawable/ic_action_search"
+        android:title="@string/search_title"
+        android:visible="false"
+        app:actionViewClass="com.android.msahakyan.fma.view.SearchView"
+        app:showAsAction="always"/>
+</menu>
+---------------------------------------------------------------------------------
+values ma.....
+colors
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#e91e63</color>
+    <color name="colorPrimaryDark">#c2185b</color>
+    <color name="colorAccent">#00e676</color>
+    <color name="white">#ffffff</color>
+    <color name="grey">#666666</color>
+    <color name="dark_grey">#666666</color>
+    <color name="transparent_orange">#44FFA500</color>
+    <color name="transparent_blue">#1300BCD4</color>
+    <color name="transparent">#00000000</color>
+    <color name="opaque_black">#29000000</color>
+    <color name="black">#000000</color>
+
+    <color name="lighter_grey">#EAEAEA</color>
+    <color name="lightest_grey">#EDEDED</color>
+    <color name="fma_red">#CC0000</color>
+
+    <color name="background_default_dark">#ffffff</color>
+    <color name="background_dark_medium">#ffffff</color>
+    <color name="background_dark_transparent">#44616161</color>
+    <color name="fma_green">#00FF00</color>
+    <color name="orange">#642464</color>
+    <color name="light_blue">#4CFFF4</color>
+</resources>
+---------------------------------------------------------------------------------
+dimens pelu
+<resources>
+    <!-- Default screen margins, per the Android Design guidelines. -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+
+    <dimen name="list_item_genre_height">80dp</dimen>
+    <dimen name="progress_icon_size">40dp</dimen>
+    <dimen name="artist_image_width">150dp</dimen>
+    <dimen name="artist_image_height">150dp</dimen>
+    <dimen name="track_image_height">140dp</dimen>
+    <dimen name="detail_image_height">250dp</dimen>
+    <dimen name="album_image_height">150dp</dimen>
+    <dimen name="text_size_title">13sp</dimen>
+    <dimen name="text_size_larger">14sp</dimen>
+    <dimen name="text_size_pts">16sp</dimen>
+    <dimen name="text_size_splash">40sp</dimen>
+    <dimen name="text_size_normal">12sp</dimen>
+    <dimen name="icon_track_height">10dp</dimen>
+    <dimen name="padding_size_small">5dp</dimen>
+    <dimen name="padding_size_normal">8dp</dimen>
+    <dimen name="padding_size_extra_small">2dp</dimen>
+    <dimen name="margin_size_small">5dp</dimen>
+    <dimen name="margin_right_track_count">-4dp</dimen>
+    <dimen name="page_margin">8dp</dimen>
+    <dimen name="margin_size_normal">8dp</dimen>
+    <dimen name="margin_size_medium">10dp</dimen>
+    <dimen name="margin_size_large">15dp</dimen>
+    <dimen name="margin_size_extra_large">90dp</dimen>
+    <dimen name="padding_size_larger">30dp</dimen>
+    <dimen name="padding_size_medium">10dp</dimen>
+    <dimen name="icon_track_width">15dp</dimen>
+    <dimen name="margin_size_extra_small">3dp</dimen>
+    <dimen name="padding_size_large">15dp</dimen>
+    <dimen name="text_size_detail_title">18sp</dimen>
+    <dimen name="padding_size_extra_large">50dp</dimen>
+    <dimen name="border_size">1dp</dimen>
+    <dimen name="icon_size_remove">40dp</dimen>
+</resources>
+-------------------------------------------------------------------------------
+dimens biju
+<resources>
+    <!-- Example customization of dimensions originally defined in res/values/dimens.xml
+         (such as screen margins) for screens with more than 820dp of available width. This
+         would include 7" and 10" devices in landscape (~960dp and ~1280dp respectively). -->
+    <dimen name="activity_horizontal_margin">64dp</dimen>
+</resources>
+--------------------------------------------------------------------------------------------------
+integers
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <integer name="ripple_duration">400</integer>
+    <integer name="zoom_duration">500</integer>
+</resources>
+----------------------------------------------------------------------------
+strings
+<resources>
+    <string name="app_name">Free Music</string>
+    <string name="scheme">freemusic</string>
+
+    <string name="genres_fragment">Genres Fragment</string>
+    <string name="search_genre">Search music with this genre</string>
+    <string name="description_artist_image">Image of the artist</string>
+    <string name="description_track_image">Image of the track</string>
+    <string name="no_connection">No network connection</string>
+    <string name="dialog_connection_button_positive">Yes</string>
+    <string name="dialog_connection_button_negative">No</string>
+    <string name="dialog_connection_title">Connection error</string>
+    <string name="dialog_connection_message">Open wifi settings</string>
+    <string name="no_data">No data</string>
+    <string name="label_artist">artist:</string>
+    <string name="description_track_count">Track count</string>
+    <string name="toast_item_load_error">Can\'t load extra data of an item</string>
+    <string name="label_songs">Songs</string>
+    <string name="album_detail_info">Album detail information</string>
+    <string name="error_load_more">Can\'t load more data. Try again.</string>
+    <string name="button_play_pause">play/pause button</string>
+    <string name="description_album_image">Image of the album</string>
+    <string name="progress_start_val">00:00</string>
+    <string name="playing">Playing</string>
+    <string name="now_playing">Playing %1$s</string>
+
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string name="description_blurred_image"/>
+    <string name="right_arrow_desc"/>
+    <string name="label_albums">Albums</string>
+
+    <string name="artist_location">Location: %1$s</string>
+    <string name="artist_favourites">Favourites count: %1$d</string>
+    <string name="artist_comments">Comments count: %1$d</string>
+    <string name="artist_bio">Artist Bio</string>
+    <string name="artist_creation_date">Created: %1$s</string>
+    <string name="no_more_tracks_to_load">There are no any more tracks to load in album %1$s</string>
+    <string name="free_music_app">Free Music \nApp</string>
+    <string name="button_mute_description">Mute/UnMute volume</string>
+    <string name="toast_back_to_exit">Click back button again to exit the app</string>
+    <string name="no_permition_for_write_to_external_storage">Writable storage is not available</string>
+    <string name="track_save_success">Track successfully saved in Music/Mp3Music folder</string>
+    <string name="button_download">Download</string>
+    <string name="download_in_process">Song Downloading in Background please wait</string>
+    <string name="view_license">License</string>
+    <string name="empty_license_url">License of song %1$s is empty</string>
+    <string name="file_already_exists">File %1$s already exists</string>
+    <string name="started_from_branch_deeplink">Free Music started via branch deep link</string>
+    <string name="search_title">Search</string>
+    <string name="title_toolbar">Free Music</string>
+    <string name="search_hint">Search</string>
+    <string name="artist_name_wrapper">[ %1$s ]</string>
+</resources>
+----------------------------------------------------------------------------------------------
+styles
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="Fma.Widget.TextView" parent="@android:style/Widget.TextView"/>
+
+    <style name="Fma.Widget.TextView.NoData">
+        <item name="android:textColor">@color/grey</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="Fma.ItemList.Item" parent="@android:style/Widget">
+        <item name="android:paddingTop">@dimen/page_margin</item>
+        <item name="android:paddingBottom">@dimen/page_margin</item>
+        <item name="android:paddingLeft">@dimen/page_margin</item>
+        <item name="android:paddingRight">@dimen/page_margin</item>
+    </style>
+
+    <style name="BrowseContentButton" parent="Base.TextAppearance.AppCompat.Body1">
+        <item name="android:textColor">@color/transparent_orange</item>
+    </style>
+
+    <style name="Fma.Widget.ScrollView" parent="@android:style/Widget.ScrollView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:overScrollMode">never</item>
+        <item name="android:scrollbarStyle">outsideOverlay</item>
+        <item name="android:fadingEdge">none</item>
+        <item name="android:fadingEdgeLength">0dp</item>
+        <item name="android:scrollbars">none</item>
+    </style>
+
+    <style name="ListItemDivider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">1dp</item>
+        <item name="android:background">?android:attr/listDivider</item>
+    </style>
+
+    <style name="Fma.Dialog.Title" parent="@android:style/Widget.TextView">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">64dp</item>
+        <item name="android:layout_marginLeft">16dp</item>
+        <item name="android:layout_marginRight">16dp</item>
+        <item name="android:gravity">center_vertical|start</item>
+        <item name="android:textSize">20sp</item>
+        <item name="android:singleLine">true</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Fma.Widget.FloatingActionButton" parent="Widget.Design.FloatingActionButton">
+        <item name="backgroundTint">@color/fma_red</item>
+        <item name="borderWidth">0dp</item>
+    </style>
+
+</resources>
+--------------------------------------------------------------------------------------------------
+styles
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+    </style>
+
+
+    <style name="Stylefruits.Widget.FloatingActionButton" parent="Widget.Design.FloatingActionButton">
+        <item name="backgroundTint">@color/fma_red</item>
+    </style>
+
+</resources>
+--------------------------------------------------------------------------------------------------
+xml ma....
+searchable
+<?xml version="1.0" encoding="utf-8"?>
+<searchable xmlns:android="http://schemas.android.com/apk/res/android"
+            android:hint="@string/search_hint"
+            android:imeOptions="actionSearch"
+            android:label="@string/app_name"/>
